@@ -1,4 +1,4 @@
-export type UserRole = 'productor' | 'auditor' | 'autoridad'
+export type UserRole = 'auditor'
 
 export type RiskLevel = 'Bajo' | 'Medio' | 'Alto' | 'Crítico'
 export type TechnicalResult =

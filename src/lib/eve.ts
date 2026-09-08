@@ -1,10 +1,20 @@
 export type EveDocumentResult = { contentBase64: string; filename: string; mediaType: string }
+export type EveAuditResult = {
+  audit_id: string
+  resultado: string
+  nivel_riesgo: string
+  confianza: number
+  resumen: string
+  requiere_auditor: boolean
+  [key: string]: unknown
+}
+export type EveGenerationResult = { document: EveDocumentResult; evaluation?: EveAuditResult }
 export type EvePdfResult = EveDocumentResult
 
 type EveEvent = Record<string, unknown>
 
 function errorFromEvent(event: EveEvent) {
-  const data = event.data as Record<string, unknown> | undefined
+  const data = event.data as EveEvent | undefined
   const status = event.status ?? data?.status
   if (status !== 'error') return null
   const message = event.mensaje ?? event.message ?? data?.mensaje ?? data?.message
@@ -12,16 +22,16 @@ function errorFromEvent(event: EveEvent) {
 }
 
 function messageFromEvent(event: EveEvent) {
-  const data = event.data as Record<string, unknown> | undefined
+  const data = event.data as EveEvent | undefined
   return [event.message, event.statusMessage, data?.message, data?.status].find((value): value is string => typeof value === 'string' && value.trim().length > 0)
 }
 
 const resultPaths = [
   (event: EveEvent) => event.data,
-  (event: EveEvent) => (event.data as Record<string, unknown> | undefined)?.output,
-  (event: EveEvent) => (event.data as Record<string, unknown> | undefined)?.result,
-  (event: EveEvent) => ((event.data as Record<string, unknown> | undefined)?.output as Record<string, unknown> | undefined)?.content,
-  (event: EveEvent) => ((event.data as Record<string, unknown> | undefined)?.result as Record<string, unknown> | undefined)?.content,
+  (event: EveEvent) => (event.data as EveEvent | undefined)?.output,
+  (event: EveEvent) => (event.data as EveEvent | undefined)?.result,
+  (event: EveEvent) => ((event.data as EveEvent | undefined)?.output as EveEvent | undefined)?.content,
+  (event: EveEvent) => ((event.data as EveEvent | undefined)?.result as EveEvent | undefined)?.content,
 ]
 
 function flatten(value: unknown): unknown[] {
@@ -51,6 +61,18 @@ export function extractDocumentResult(event: EveEvent): EveDocumentResult | null
   return null
 }
 
+function extractEvaluation(event: EveEvent): EveAuditResult | undefined {
+  const candidates = resultPaths.flatMap((getValue) => flatten(getValue(event)))
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') continue
+    const value = candidate as Record<string, unknown>
+    if (typeof value.audit_id !== 'string' || typeof value.resultado !== 'string') continue
+    if (typeof value.nivel_riesgo !== 'string' || typeof value.confianza !== 'number') continue
+    return value as EveAuditResult
+  }
+  return undefined
+}
+
 export const extractPdfResult = extractDocumentResult
 
 export function downloadBase64File(contentBase64: string, filename: string, mediaType = 'application/pdf') {
@@ -59,14 +81,14 @@ export function downloadBase64File(contentBase64: string, filename: string, medi
   const url = URL.createObjectURL(new Blob([bytes], { type: mediaType }))
   const link = document.createElement('a')
   link.href = url
-  link.download = filename.toLowerCase().endsWith('.pdf') ? filename : `${filename}.pdf`
+  link.download = filename
   document.body.appendChild(link)
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
 }
 
-export async function generateAuditWithEve(expedient: unknown, onStatus: (message: string) => void, signal?: AbortSignal) {
+export async function generateAuditWithEve(expedient: unknown, onStatus: (message: string) => void, signal?: AbortSignal): Promise<EveGenerationResult> {
   const eveUrl = import.meta.env.VITE_EVE_URL
   if (!eveUrl) throw new Error('Falta configurar VITE_EVE_URL.')
   const message = `Genera la auditoría y el informe PDF usando este expediente maestro. Usa la tool generar_resolucion_pdf y devuelve el archivo PDF.\n\nExpediente:\n${JSON.stringify(expedient, null, 2)}`
@@ -81,14 +103,16 @@ export async function generateAuditWithEve(expedient: unknown, onStatus: (messag
   const reader = streamResponse.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let evaluation: EveAuditResult | undefined
   const processEvent = (line: string) => {
-    let event: EveEvent
     const payload = line.startsWith('data:') ? line.slice(5).trim() : line
+    let event: EveEvent
     try { event = JSON.parse(payload) as EveEvent } catch { event = { message: payload } }
     const error = errorFromEvent(event)
-    if (error) { console.error('[EVE] El agente reportó un error:', error); throw new Error(error) }
+    if (error) throw new Error(error)
     const status = messageFromEvent(event)
     if (status) onStatus(status)
+    evaluation = extractEvaluation(event) ?? evaluation
     return extractDocumentResult(event)
   }
   try {
@@ -98,17 +122,16 @@ export async function generateAuditWithEve(expedient: unknown, onStatus: (messag
       const lines = buffer.split(/\r?\n/)
       buffer = lines.pop() ?? ''
       for (const line of lines) {
-        if (!line.trim()) continue
-        const pdf = processEvent(line)
-        if (pdf) { await reader.cancel(); return pdf }
+        if (!line.trim() || line.trim() === 'data: [DONE]') continue
+        const document = processEvent(line)
+        if (document) { await reader.cancel(); return { document, evaluation } }
       }
       if (done) break
     }
-    if (buffer.trim()) {
-      const pdf = processEvent(buffer)
-      if (pdf) return pdf
+    if (buffer.trim() && buffer.trim() !== 'data: [DONE]') {
+      const document = processEvent(buffer)
+      if (document) return { document, evaluation }
     }
   } finally { reader.releaseLock() }
-  console.error('[EVE] El stream terminó sin entregar un documento descargable.')
   throw new Error('El agente terminó sin entregar el PDF de auditoría.')
 }
