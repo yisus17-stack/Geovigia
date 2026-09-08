@@ -83,7 +83,8 @@ export async function generateAuditWithEve(expedient: unknown, onStatus: (messag
   let buffer = ''
   const processEvent = (line: string) => {
     let event: EveEvent
-    try { event = JSON.parse(line) as EveEvent } catch { event = { message: line } }
+    const payload = line.startsWith('data:') ? line.slice(5).trim() : line
+    try { event = JSON.parse(payload) as EveEvent } catch { event = { message: payload } }
     const error = errorFromEvent(event)
     if (error) { console.error('[EVE] El agente reportó un error:', error); throw new Error(error) }
     const status = messageFromEvent(event)
