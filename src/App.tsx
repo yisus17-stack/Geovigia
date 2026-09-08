@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import RequireRole from './components/RequireRole'
+import ScrollToTop from './components/ScrollToTop'
 import AnalysisPage from './pages/AnalysisPage'
 import NotFoundPage from './pages/NotFoundPage'
 import AuditorDashboard from './pages/auditor/AuditorDashboard'
@@ -21,12 +22,12 @@ const auditor = (page: ReactNode) => <RequireRole role="auditor">{page}</Require
 const autoridad = (page: ReactNode) => <RequireRole role="autoridad">{page}</RequireRole>
 
 function App() {
-  return <Routes>
+  return <><ScrollToTop /><Routes>
     <Route path="/" element={<LandingPage />} /><Route path="/login" element={<LoginPage />} />
     <Route path="/productor" element={productor(<ProductorDashboard />)} /><Route path="/productor/huertos" element={productor(<OrchardsPage />)} /><Route path="/productor/huertos/nuevo" element={productor(<NewOrchardPage />)} /><Route path="/productor/huertos/:id/editar" element={productor(<EditOrchardPage />)} /><Route path="/productor/huertos/:id" element={productor(<OrchardDetailPage />)} /><Route path="/analisis/:id" element={productor(<AnalysisPage />)} />
     <Route path="/auditor" element={auditor(<AuditorDashboard />)} /><Route path="/auditor/revisiones/:id" element={auditor(<RevisionPage />)} />
     <Route path="/autoridad" element={autoridad(<AuthorityDashboard />)} /><Route path="/autoridad/expedientes" element={autoridad(<ExpedientsPage />)} /><Route path="/autoridad/expedientes/:id" element={autoridad(<ExpedientDetailPage />)} />
     <Route path="/dashboard" element={<Navigate to="/productor" replace />} /><Route path="*" element={<NotFoundPage />} />
-  </Routes>
+  </Routes></>
 }
 export default App

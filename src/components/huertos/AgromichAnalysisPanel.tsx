@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getHuerto, type Huerto } from '../../lib/huertos'
 import { supabase } from '../../lib/supabase'
+import { closeLoading, showError, showLoading, showSuccess } from '../../lib/alerts'
 
 type NdviPoint = { anio: number; ndvi_promedio: number }
 type ApiImage = { anio: number; thumbnail_url?: string; image_url?: string; url?: string; fuente?: string }
@@ -25,7 +26,8 @@ function parseImages(payload: unknown): ApiImage[] {
     const row = item as Record<string, unknown>
     const anio = Number(row.anio ?? row.year)
     if (!Number.isFinite(anio)) return []
-    return [{ anio, thumbnail_url: typeof row.thumbnail_url === 'string' ? row.thumbnail_url : undefined, image_url: typeof row.image_url === 'string' ? row.image_url : undefined, url: typeof row.url === 'string' ? row.url : undefined, fuente: typeof row.fuente === 'string' ? row.fuente : undefined }]
+    const fullImageUrl = typeof row.image_url === 'string' ? row.image_url : typeof row.url === 'string' ? row.url : undefined
+    return [{ anio, thumbnail_url: fullImageUrl ?? (typeof row.thumbnail_url === 'string' ? row.thumbnail_url : undefined), image_url: fullImageUrl, url: typeof row.url === 'string' ? row.url : undefined, fuente: typeof row.fuente === 'string' ? row.fuente : undefined }]
   })
 }
 
@@ -47,10 +49,11 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
   const maxNdvi = useMemo(() => Math.max(...ndvi.map((point) => point.ndvi_promedio), .01), [ndvi])
 
   async function runAnalysis() {
-    if (!huerto?.poligono) { setError('Esta huerta necesita un polígono antes de generar el expediente.'); return }
-    if (!apiBase) { setError('Configura VITE_AGROMICH_API_URL para producción.'); return }
+    if (!huerto?.poligono) { setError('Esta huerta necesita un polígono antes de generar el expediente.'); void showError('Falta el polígono', 'Delimita la huerta antes de generar el expediente.'); return }
+    if (!apiBase) { setError('Configura VITE_AGROMICH_API_URL para producción.'); void showError('API no configurada', 'Falta configurar la conexión con AgroMich.'); return }
     setRunning(true)
     setError('')
+    showLoading('Generando expediente...', 'Consultamos el análisis ambiental y las imágenes históricas.')
     try {
       const { data } = await supabase.auth.getUser()
       const producer = String(data.user?.user_metadata?.full_name ?? data.user?.email ?? 'Productor GeoVigía')
@@ -63,8 +66,11 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
       if (!imagesResponse.ok) throw new Error('AgroMich no pudo generar las imágenes históricas.')
       const analysis = await analysisResponse.json() as ApiResult
       setResult({ ...analysis, imagenes: parseImages(await imagesResponse.json() as unknown) })
+      closeLoading()
+      await showSuccess('Expediente generado', 'La evidencia histórica está lista para revisar.')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo ejecutar el análisis.')
+      const message = cause instanceof Error ? cause.message : 'No se pudo ejecutar el análisis.'
+      closeLoading(); setError(message); void showError('No se pudo generar el expediente', message)
     } finally { setRunning(false) }
   }
 

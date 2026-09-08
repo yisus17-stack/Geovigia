@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import OrchardDrawingMap, { type OrchardMapHandle, type PolygonCoordinates } from '../map/OrchardDrawingMap'
 import { createHuerto, getHuerto, updateHuerto } from '../../lib/huertos'
+import { closeLoading, showError, showLoading, showSuccess } from '../../lib/alerts'
 
 type HuertoEditorFormProps = { huertoId?: string }
 
@@ -42,15 +43,19 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!polygon) { setError('Dibuja o ajusta el poligono de la huerta antes de guardar.'); return }
+    if (!polygon) { setError('Dibuja o ajusta el poligono de la huerta antes de guardar.'); void showError('Falta el polígono', 'Dibuja o ajusta la huerta en el mapa antes de guardar.'); return }
     setSaving(true)
     setError('')
+    showLoading(huertoId ? 'Guardando cambios...' : 'Registrando huerta...', 'Estamos guardando los datos y el polígono.')
     const input = { ...form, poligono: { type: 'Polygon' as const, coordinates: polygon }, superficie_ha: hectares }
     try {
       const saved = huertoId ? await updateHuerto(huertoId, input) : await createHuerto(input)
+      closeLoading()
+      await showSuccess(huertoId ? 'Cambios guardados' : 'Huerta registrada', 'La información quedó guardada correctamente.')
       navigate(`/productor/huertos/${saved.id}/editar`)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo guardar la huerta.')
+      const message = cause instanceof Error ? cause.message : 'No se pudo guardar la huerta.'
+      closeLoading(); setError(message); void showError('No se pudo guardar', message)
     } finally {
       setSaving(false)
     }
