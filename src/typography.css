@@ -1,0 +1,47 @@
+.dashboard-intro h1 {
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.app-sidebar {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.stat-grid {
+  border: 1px solid #dfe7e2;
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgb(7 61 45 / 4%);
+}
+
+.stat-grid div {
+  min-height: 8.5rem;
+  padding: 1.55rem 1.7rem;
+}
+
+.stat-grid div:first-child {
+  padding-left: 1.7rem;
+}
+
+.stat-grid b {
+  color: #073d2d;
+  font-size: clamp(1.85rem, 3vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  margin-bottom: .7rem;
+}
+
+.stat-grid span {
+  color: #66706b;
+  font-size: .82rem;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .app-sidebar {
+    height: auto;
+    position: static;
+  }
+}

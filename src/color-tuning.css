@@ -1,0 +1,753 @@
+/* Login y portada: sin márgenes laterales ni desbordes en móvil. */
+.login-panel::before { background: url('./assets/logo.png') center / contain no-repeat; content: ''; display: block; height: 3rem; margin-bottom: 1.75rem; width: 10rem; }
+@media (max-width: 760px) { .landing-page.gov-landing { margin: 0; max-width: none; padding: 0; width: 100%; }.gov-header, .gov-hero, .gov-services, .gov-footer { width: 100%; }.login-panel::before { height: 2.7rem; margin-bottom: 1.25rem; width: 9rem; } }
+
+/* Un solo logo en el acceso: integrado al panel visual, no flotando sobre el formulario. */
+.login-panel::before { display: none; }
+.login-visual .brand { background: url('./assets/logo.png') left center / contain no-repeat; color: transparent; display: block; font-size: 0; height: 3rem; position: relative; width: 11rem; }
+@media (max-width: 760px) { .login-visual .brand { height: 2.6rem; width: 9.5rem; } }
+
+/* Verde de acento definido para el espacio del productor. */
+.dashboard-intro {
+  background: #b3de71;
+  border-left: 0;
+}
+
+.dashboard-intro::before,
+.dashboard-intro::after {
+  content: '';
+  display: block;
+  pointer-events: none;
+  position: absolute;
+}
+
+.dashboard-intro::before {
+  background-image: url('./assets/card.png');
+  background-position: right bottom;
+  background-repeat: no-repeat;
+  background-size: min(48%, 36rem) auto;
+  inset: 0;
+  z-index: 1;
+}
+
+.dashboard-intro::after {
+  background:
+    linear-gradient(108deg, #94c648 0 62%, transparent 63%) left top / 15rem 10rem no-repeat,
+    linear-gradient(42deg, transparent 0 36%, #94c648 37% 72%, transparent 73%) 58% top / 11rem 7rem no-repeat,
+    linear-gradient(145deg, #94c648 0 48%, transparent 49%) right top / 12rem 7rem no-repeat;
+  bottom: 0;
+  height: 100%;
+  right: 0;
+  opacity: .88;
+  width: min(48%, 36rem);
+  z-index: 0;
+}
+
+.dashboard-intro > * {
+  position: relative;
+  z-index: 2;
+}
+
+.dashboard-date,
+.dashboard-brief span {
+  color: #315c20;
+}
+
+.dashboard-brief {
+  border-color: transparent;
+}
+
+.form-fields input,
+.form-fields select {
+  font-weight: 400;
+}
+
+/* Jerarquía tipográfica más ligera: semibold en vez de bold/black. */
+.page-header h1,
+.registration-header h1,
+.form-panel-heading h2,
+.agromich-panel h2,
+.section-header h2,
+.two-column h2,
+.review-form h2,
+.orchard-summary h3 {
+  font-weight: 500;
+}
+
+.stat-grid b,
+.metric-grid b,
+.table-row b,
+.table-row a,
+.section-header a,
+.orchard-summary a,
+.button,
+.text-button {
+  font-weight: 500;
+}
+
+/* El resumen usa la misma jerarquía sobria que la bandeja de revisiones. */
+.producer-summary-header {
+  margin-bottom: 2.25rem;
+}
+
+.producer-summary-header .button {
+  flex: 0 0 auto;
+}
+
+.producer-map-heading {
+  align-items: end;
+  margin-top: 3rem;
+}
+
+.producer-map-heading p:not(.eyebrow) {
+  color: #66706b;
+  font-size: .85rem;
+  line-height: 1.55;
+  margin: .45rem 0 0;
+  max-width: 40rem;
+}
+
+.producer-map-heading + .territory-map {
+  border-radius: .6rem;
+  min-height: 25rem;
+}
+
+.crop-filter {
+  background: #fff;
+  border: 1px solid #dfe5e1;
+  border-radius: .45rem;
+  color: #3f4742;
+  font-size: .8rem;
+  font-weight: 500;
+  margin: 0 0 1.5rem;
+  min-height: 2.6rem;
+  padding: .5rem 2.2rem .5rem .8rem;
+}
+
+/* Página de registro/edición: cabecera protagonista y contenido sin exceso de tarjetas. */
+.registration-header {
+  align-items: center;
+  background: #f1f4ef;
+  border: 0 !important;
+  border-radius: 1.5rem;
+  color: #172019;
+  justify-content: center;
+  margin: 0 0 3.5rem;
+  min-height: 18rem;
+  overflow: hidden;
+  padding: 3.5rem clamp(1.5rem, 4vw, 4.5rem);
+  position: relative;
+  text-align: center;
+}
+
+.registration-header::before,
+.registration-header::after {
+  border: 1px solid rgb(20 92 60 / 10%);
+  border-radius: 50%;
+  content: '';
+  height: 22rem;
+  pointer-events: none;
+  position: absolute;
+  right: 5rem;
+  top: -15rem;
+  width: 22rem;
+}
+
+.registration-header::after {
+  height: 13rem;
+  right: -2rem;
+  top: 4rem;
+  width: 13rem;
+}
+
+.registration-header > * { position: relative; z-index: 1; }
+.registration-header .eyebrow { color: #23824f; }
+.registration-header h1 { color: #172019; font-size: clamp(2.6rem, 5vw, 4.7rem); margin-bottom: .7rem; }
+.registration-header p:not(.eyebrow) { color: #68726b; margin-inline: auto; max-width: 40rem; }
+.registration-header > aside { background: #fff; border: 0; border-radius: 999px; color: #29332c; padding: .65rem .9rem; position: absolute; right: 1.25rem; text-align: left; top: 1.25rem; }
+.registration-header > aside span, .registration-header > aside small { color: #788178; }
+
+/* Encabezado breve para editar: información primero, sin una tarjeta extra. */
+.edit-orchard-header {
+  align-items: center;
+  border-radius: 0;
+  justify-content: flex-start;
+  margin-bottom: 2.75rem;
+  min-height: 8.5rem;
+  padding: 1.4rem 2rem;
+  text-align: left;
+}
+
+.edit-orchard-header::before {
+  background: linear-gradient(90deg, rgb(241 244 239 / 98%) 0%, rgb(241 244 239 / 68%) 52%, rgb(241 244 239 / 14%) 100%), url('./assets/side.png') right 42% / 21rem auto no-repeat;
+  border: 0;
+  border-radius: inherit;
+  height: auto;
+  inset: 0;
+  opacity: .75;
+  right: auto;
+  top: auto;
+  width: auto;
+}
+
+.edit-orchard-header::after {
+  border-color: rgb(20 92 60 / 10%);
+  height: 11rem;
+  right: 12rem;
+  top: -7.5rem;
+  width: 11rem;
+}
+
+.edit-orchard-header h1 {
+  font-size: clamp(1.7rem, 3vw, 2.35rem);
+  margin-bottom: .35rem;
+}
+
+.edit-orchard-header p:not(.eyebrow) {
+  font-size: .78rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 34rem;
+}
+
+.edit-orchard-header .eyebrow {
+  font-size: .58rem;
+  margin-bottom: .25rem;
+}
+
+.edit-orchard-header > aside {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  right: 1.75rem;
+  top: 1.35rem;
+}
+
+.edit-orchard-header > aside small {
+  color: #718078;
+  font-size: .58rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.orchard-registration { gap: 3.5rem; margin-inline: auto; max-width: 960px; }
+.orchard-registration .form-panel { background: transparent; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+.orchard-registration .form-panel-heading { max-width: 43rem; }
+.orchard-registration .drawing-section { border-bottom: 0; padding-bottom: 0; }
+.orchard-registration .drawing-map { margin-top: 1.75rem; }
+.orchard-registration .leaflet-orchard-map { border-radius: .7rem; }
+.orchard-registration .form-submit { border-top: 0; padding-top: 0; }
+
+/* Navegación lateral: filas y estado activo inspirados en la referencia. */
+.app-sidebar {
+  background: #f4f4f5;
+  padding: .8rem;
+}
+
+.sidebar-panel {
+  background: #fff;
+  border: 1px solid #ececef;
+  border-radius: .55rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 1.15rem .75rem .8rem;
+  position: relative;
+}
+
+.sidebar-panel > :not(.sidebar-scene) {
+  position: relative;
+  z-index: 1;
+}
+
+.app-brand {
+  color: #26282c;
+  font-size: 1.12rem;
+  letter-spacing: -.05em;
+  padding: 0 .45rem;
+}
+
+.app-brand img {
+  display: block;
+  height: auto;
+  max-width: 8.3rem;
+  width: 100%;
+}
+
+.app-brand small {
+  color: #989ca1;
+  font-size: .5rem;
+  letter-spacing: .1em;
+}
+
+.app-nav {
+  gap: .2rem;
+  margin-top: 2.6rem;
+}
+
+.app-nav::before {
+  display: none;
+}
+
+.app-nav a {
+  border-left: 0;
+  border-radius: .38rem;
+  color: #54565d;
+  font-size: .82rem;
+  font-weight: 500;
+  gap: .65rem;
+  letter-spacing: 0;
+  line-height: 1.25;
+  min-height: 2.35rem;
+  padding: .5rem .55rem;
+}
+
+.nav-glyph {
+  height: 1.1rem;
+  stroke-width: 1.8;
+  width: 1.1rem;
+}
+
+.app-nav a:hover {
+  background: #f6f7f7;
+  color: #303337;
+}
+
+.app-nav a.active {
+  background: #f1f2f2;
+  color: #303337;
+  font-weight: 600;
+}
+
+.app-nav a.active .nav-glyph {
+  stroke-width: 2;
+}
+
+.sidebar-scene {
+  bottom: 0;
+  height: 18rem;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  z-index: 0;
+}
+
+.sidebar-scene::after {
+  background: linear-gradient(to bottom, rgb(255 255 255 / 96%) 0%, rgb(255 255 255 / 18%) 37%, rgb(0 44 29 / 15%) 100%);
+  content: '';
+  inset: 0;
+  position: absolute;
+}
+
+.sidebar-scene img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  width: 100%;
+}
+
+.header-signout {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid #e4e8e5;
+  color: #66706b;
+  cursor: pointer;
+  font: inherit;
+  font-size: .7rem;
+  margin-left: .35rem;
+  padding: .3rem 0 .3rem .85rem;
+}
+
+.header-signout:hover {
+  color: #073d2d;
+}
+
+.app-sidebar .avatar {
+  background: #b3de71;
+  color: #315c20;
+}
+
+.sidebar-user b {
+  color: #34363a;
+  font-size: .72rem;
+}
+
+.app-sidebar .sidebar-user small,
+.app-sidebar .sidebar-user button {
+  color: #8a8e94;
+}
+
+.territory-leaflet-map {
+  height: 100%;
+  inset: 0;
+  min-height: inherit;
+  position: absolute;
+  width: 100%;
+}
+
+.territory-map-label {
+  background: rgb(255 255 255 / 92%);
+  border: 0;
+  border-radius: .25rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 16%);
+  color: #303337;
+  font-family: Poppins, sans-serif;
+  font-size: .62rem;
+  font-weight: 600;
+  padding: .25rem .4rem;
+}
+
+.territory-map-label,
+.leaflet-interactive {
+  cursor: pointer;
+}
+
+.territory-map-label::before {
+  display: none;
+}
+
+.agromich-panel {
+  background: #f5f7f4;
+  border: 0;
+  border-radius: 1rem;
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+}
+
+.agromich-panel > .button {
+  justify-self: start;
+}
+
+.agromich-result {
+  border-top: 1px solid #e7e9e8;
+  display: grid;
+  gap: 1.25rem;
+  padding-top: 1.25rem;
+}
+
+.analysis-summary {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.analysis-summary > div {
+  background: #f6f8f6;
+  border-radius: .5rem;
+  padding: 1rem;
+}
+
+.analysis-summary span {
+  color: #66706b;
+  display: block;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.analysis-summary b { display: block; font-size: 1rem; margin: .4rem 0; }
+.analysis-summary p { color: #66706b; font-size: .78rem; line-height: 1.5; margin: 0; }
+.ndvi-timeline { border: 1px solid #e2e5e3; border-radius: .5rem; padding: 1rem; }
+.ndvi-timeline h3 { font-size: 1.15rem; margin: .2rem 0 1rem; }
+.ndvi-bars { align-items: end; display: flex; gap: .45rem; height: 8rem; }
+.ndvi-bars > div { align-items: center; display: flex; flex: 1; flex-direction: column; height: 100%; justify-content: end; }
+.ndvi-bars i { background: #94c648; border-radius: .2rem .2rem 0 0; display: block; max-width: 2rem; width: 100%; }
+.ndvi-bars span { color: #66706b; font-size: .62rem; margin-top: .4rem; }
+.analysis-alert { background: #fff5e1; color: #755312; font-size: .8rem; margin: 0; padding: .8rem; }
+.pasted-response { display: grid; gap: .65rem; }
+.pasted-response label { color: #66706b; display: grid; font-size: .76rem; font-weight: 600; gap: .4rem; }
+.pasted-response textarea { border: 1px solid #dfe4e1; border-radius: .45rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; line-height: 1.45; padding: .7rem; resize: vertical; }
+.pasted-response .button { justify-self: start; }
+.satellite-timeline { border: 1px solid #e2e5e3; border-radius: .5rem; padding: 1rem; }
+.satellite-timeline > div { display: flex; gap: .8rem; overflow-x: auto; }
+.satellite-timeline figure { flex: 0 0 12rem; margin: 0; }
+.satellite-timeline img, .satellite-timeline figure > span { background: #edf1ee; border-radius: .35rem; display: block; height: 8rem; object-fit: cover; width: 100%; }
+.satellite-timeline figure > span { align-content: center; color: #66706b; font-size: .72rem; text-align: center; }
+.satellite-timeline figcaption { color: #505652; font-size: .72rem; font-weight: 600; margin-top: .4rem; }
+
+/* Escala visual única para la experiencia de edición y evidencia. */
+.orchard-registration,
+.agromich-panel {
+  max-width: 960px;
+}
+
+.agromich-panel {
+  margin: 3.5rem auto 0;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.orchard-registration h2,
+.agromich-panel h2 {
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+  letter-spacing: -.045em;
+  line-height: 1.12;
+}
+
+.form-fields { gap: 1.15rem 1.35rem; margin-top: 2rem; }
+.form-fields input, .form-fields select { min-height: 3.25rem; }
+.form-fields label { font-size: .76rem; }
+
+.drawing-section .form-panel-heading { margin-bottom: .25rem; }
+.drawing-map { margin-top: 2rem !important; }
+.leaflet-orchard-map { height: clamp(23rem, 43vw, 29rem); }
+
+.map-actions { border-top: 0 !important; gap: .6rem; margin-top: 1.25rem !important; padding-top: 0 !important; }
+.map-actions .button, .map-actions .text-button { min-height: 2.6rem; }
+.form-submit { margin-top: .25rem; min-height: 3.5rem; }
+
+.agromich-result { border-top: 0; gap: 2rem; padding-top: .25rem; }
+.analysis-summary { gap: .75rem; }
+.analysis-summary > div { background: #fff; border-radius: .65rem; min-height: 8.5rem; padding: 1.15rem; }
+.satellite-timeline, .ndvi-timeline { background: #fff; border: 0; border-radius: .7rem; padding: 1.25rem; }
+.satellite-timeline > div { gap: .9rem; }
+.satellite-timeline figure { flex-basis: 10.5rem; }
+.satellite-timeline img, .satellite-timeline figure > span { aspect-ratio: 4 / 3; height: auto; }
+.ndvi-bars { gap: .65rem; height: 10rem; }
+.ndvi-bars i { border-radius: .25rem .25rem .08rem .08rem; max-width: 2.25rem; }
+.analysis-alert { border-radius: .5rem; padding: .9rem 1rem; }
+
+@media (max-width: 760px) {
+  .app-shell {
+    display: block;
+    position: relative;
+  }
+
+  .menu-toggle {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e2e4e3;
+    border-radius: .5rem;
+    box-shadow: 0 4px 14px rgb(27 35 31 / 10%);
+    color: transparent;
+    display: inline-flex;
+    font-size: 0;
+    height: 2.7rem;
+    justify-content: center;
+    left: .9rem;
+    padding: 0;
+    position: fixed;
+    top: .9rem;
+    width: 2.7rem;
+    z-index: 70;
+  }
+
+  .menu-toggle::before {
+    color: #303337;
+    content: '☰';
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .app-sidebar,
+  .app-sidebar.is-open {
+    bottom: 0;
+    display: flex;
+    left: 0;
+    padding: .7rem;
+    position: fixed;
+    top: 0;
+    transform: translateX(-105%);
+    transition: transform .24s ease;
+    width: min(18rem, 86vw);
+    z-index: 60;
+  }
+
+  .app-sidebar.is-open {
+    box-shadow: 18px 0 38px rgb(22 30 25 / 18%);
+    transform: translateX(0);
+  }
+
+  .sidebar-panel {
+    min-height: 100%;
+  }
+
+  .sidebar-scene {
+    display: none;
+  }
+
+  .header-signout {
+    display: none;
+  }
+
+  .menu-open::after {
+    background: rgb(19 25 22 / 32%);
+    content: '';
+    inset: 0;
+    position: fixed;
+    z-index: 50;
+  }
+
+  .dashboard-intro {
+    overflow: hidden;
+  }
+
+  .dashboard-intro::before {
+    background-position: right -5rem bottom;
+    background-size: 27rem auto;
+  }
+
+  .dashboard-intro::after {
+    background-size: 8rem 5.5rem, 6rem 4.5rem, 5rem 4rem;
+    width: 58%;
+  }
+
+  .registration-header {
+    border-radius: 1rem;
+    margin: 0 0 2rem;
+    min-height: auto;
+    padding: 4.5rem 1.5rem 2.5rem;
+  }
+
+  .registration-header > aside { width: 100%; }
+
+  .edit-orchard-header {
+    margin-bottom: 2rem;
+    min-height: 9rem;
+    padding: 1.35rem;
+  }
+
+  .edit-orchard-header::before {
+    background-size: 15rem auto;
+  }
+
+  .edit-orchard-header > aside {
+    display: none;
+  }
+
+  .analysis-summary { grid-template-columns: 1fr; }
+
+  .agromich-panel { margin-top: 2.5rem; padding: 1.25rem; }
+
+  .producer-summary-header .button {
+    width: 100%;
+  }
+
+  .producer-map-heading {
+    align-items: flex-start;
+    margin-top: 2.4rem;
+  }
+
+  .crop-filter {
+    width: 100%;
+  }
+  .orchard-registration { gap: 2.5rem; }
+  .leaflet-orchard-map { height: 19rem; }
+  .satellite-timeline figure { flex-basis: 9rem; }
+}
+
+/* Tirador del menú en móvil: siempre visible sin ocupar la cabecera. */
+@media (max-width: 760px) {
+  .menu-toggle {
+    background: #0b6b3a;
+    border-radius: 0;
+    box-shadow: none;
+    height: 100dvh;
+    left: -1rem;
+    top: 0;
+    width: 1.34rem;
+  }
+
+  .menu-toggle::before {
+    align-items: center;
+    background: #0b6b3a;
+    border-radius: 0 999px 999px 0;
+    color: #fff;
+    content: '';
+    display: flex;
+    font-size: 0;
+    height: 3.25rem;
+    justify-content: center;
+    left: 1rem;
+    line-height: 1;
+    margin: 0;
+    padding-left: 0;
+    position: absolute;
+    top: 5.1rem;
+    width: 2.3rem;
+  }
+
+  .menu-open .menu-toggle::before {
+    left: 0;
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .menu-toggle::after {
+    border-bottom: 2px solid #fff;
+    border-right: 2px solid #fff;
+    content: '';
+    height: .55rem;
+    left: 1.55rem;
+    position: absolute;
+    top: 6.38rem;
+    transform: rotate(-45deg);
+    transition: transform .2s ease;
+    width: .55rem;
+  }
+
+  .menu-open .menu-toggle {
+    left: calc(min(18rem, 86vw) - .34rem);
+    width: .34rem;
+  }
+
+  .menu-open .menu-toggle::after {
+    left: .68rem;
+    transform: rotate(135deg);
+  }
+}
+
+/* Control simple para el menú móvil. */
+@media (max-width: 760px) {
+  .menu-toggle,
+  .menu-open .menu-toggle {
+    background: #fff;
+    border: 1px solid #e2e4e3;
+    border-radius: .5rem;
+    box-shadow: 0 4px 14px rgb(27 35 31 / 10%);
+    height: 2.7rem;
+    left: .8rem;
+    top: .8rem;
+    width: 2.7rem;
+  }
+
+  .menu-toggle::before,
+  .menu-open .menu-toggle::before {
+    align-items: center;
+    background: transparent;
+    border-radius: 0;
+    color: #303337;
+    content: '\2630';
+    display: flex;
+    font-family: Arial, sans-serif;
+    font-size: 1.2rem;
+    font-weight: 400;
+    height: 100%;
+    justify-content: center;
+    left: 0;
+    line-height: 1;
+    padding: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+  }
+
+  .menu-open .menu-toggle::before {
+    content: '\00D7';
+    font-size: 1.55rem;
+    font-weight: 300;
+  }
+
+  .menu-toggle::after,
+  .menu-open .menu-toggle::after {
+    display: none;
+  }
+}
