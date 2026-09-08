@@ -26,18 +26,18 @@
 .login-panel .back-link { display: inline-block; margin-bottom: 3.5rem; }.login-panel .eyebrow { margin-top: 0; }.login-panel h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 500; letter-spacing: -.055em; }.login-form label { color: #073d2d; font-weight: 600; }.login-form input { border-radius: .55rem; min-height: 3.25rem; }.login-form .button { border-radius: .55rem; min-height: 3.25rem; }
 @media (max-width: 760px) { .login-page { background: #fff; display: block; min-height: 100svh; }.login-visual { min-height: auto; padding: 1.5rem 1.25rem; }.login-visual::after, .login-visual p { display: none; }.login-visual .brand { height: 2.5rem; width: 9.5rem; }.login-panel { border: 0; border-radius: 0; box-shadow: none; margin: 0; max-width: none; padding: 2.5rem 1.5rem; }.login-panel .back-link { margin-bottom: 2.5rem; } }
 
-/* Imagen del productor en la composición principal de la landing. */
-.gov-hero::after { background: url('./assets/productor.png') center bottom / contain no-repeat; clip-path: none; height: min(34rem, 76%); opacity: 1; right: max(2rem, calc((100vw - 1280px) / 2)); top: 5.2rem; width: min(34rem, 34vw); }
+/* Imagen agrícola en la composición principal de la landing. */
+.gov-hero::after { background: url('./assets/landing.png') center bottom / cover no-repeat; clip-path: none; height: min(34rem, 76%); opacity: 1; right: max(2rem, calc((100vw - 1280px) / 2)); top: 5.2rem; width: min(34rem, 34vw); }
 .gov-hero-inner { max-width: min(68rem, 60vw); }
 @media (max-width: 760px) { .gov-hero::after { display: none; }.gov-hero-inner { max-width: none; } }
 
-/* Buscador protagonista; el productor se mantiene por encima, sin invadirlo. */
+/* Buscador protagonista; la imagen se mantiene por encima, sin invadirlo. */
 .gov-search { max-width: 72rem; min-height: 7rem; }
 .gov-search input { font-size: 1.35rem; }.gov-search a { width: 10.5rem; }
 .gov-hero::after { height: min(27rem, 52%); right: max(2rem, calc((100vw - 1280px) / 2)); top: 2.6rem; width: min(36rem, 35vw); }
 @media (max-width: 760px) { .gov-search { min-height: 4.2rem; }.gov-search input { font-size: .9rem; }.gov-search a { width: 4.2rem; } }
 
-/* Verde de acento definido para el espacio del productor. */
+/* Verde de acento para las acciones principales. */
 .dashboard-intro {
   background: #b3de71;
   border-left: 0;
@@ -780,6 +780,23 @@
   .menu-open .menu-toggle::after {
     display: none;
   }
+}
+
+/* La vista integrada ya identifica la fuente de evidencia en su contexto. */
+.territory-map .leaflet-control-attribution {
+  display: none !important;
+}
+
+.detail-actions {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.danger-button {
+  color: #b42318 !important;
 }
 .orchard-label-anchor { background: transparent; border: 0; }
 

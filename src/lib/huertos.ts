@@ -49,6 +49,13 @@ export async function updateHuerto(id: string, input: HuertoInput) {
   return data as Huerto
 }
 
+export async function deleteHuerto(id: string) {
+  const { data: auth, error: authError } = await supabase.auth.getUser()
+  if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
+  const { error } = await supabase.from('huertos').delete().eq('id', id).eq('propietario_id', auth.user.id)
+  if (error) throw error
+}
+
 export async function solicitarAuditoria(id: string) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')

@@ -72,19 +72,18 @@ function RevisionPage() {
 
     try {
       const { data: auth } = await supabase.auth.getUser()
-      const productor = String(auth.user?.user_metadata?.full_name ?? auth.user?.email ?? 'Productor GeoVigía')
-      const anioFin = new Date().getFullYear()
+      const responsableRegistro = String(auth.user?.user_metadata?.full_name ?? auth.user?.email ?? 'Responsable del registro')
       const expedienteResponse = await fetch(`${agromichApi}/api/v1/expediente/generar-completo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nombre_huerto: huerto.nombre,
-          productor,
+          productor: responsableRegistro,
           municipio: huerto.municipio,
           cultivo: huerto.cultivo,
           geometry: huerto.poligono,
           anio_inicio: 2018,
-          anio_fin: anioFin,
+          anio_fin: new Date().getFullYear(),
         }),
         signal: controller.signal,
       })
@@ -94,7 +93,7 @@ function RevisionPage() {
       }
 
       const expediente = await expedienteResponse.json()
-      setAgentStatus('Expediente listo. Vigía está preparando la auditoría y el PDF…')
+      setAgentStatus('Expediente listo. Vigía está preparando la auditoría y el documento…')
       const document = await generateAuditWithEve(expediente, setAgentStatus, controller.signal)
       setDocumentResult(document)
       setAgentStatus(`Auditoría generada. El ${document.mediaType === 'application/pdf' ? 'PDF' : 'Word'} está listo para descargar.`)
@@ -111,14 +110,14 @@ function RevisionPage() {
     }
   }
 
-  return <AppLayout role="auditor">
+  return <AppLayout>
     {loading && <p className="loading-state">Cargando huerta desde Supabase…</p>}
     {error && <p className="form-error" role="alert">{error}</p>}
     {!loading && huerto && <>
-      <header className="page-header"><div><p className="eyebrow">Revisión de huerta</p><h1>{huerto.nombre}</h1><p>{huerto.municipio} · {huerto.localidad} · {huerto.superficie_ha?.toFixed(2) ?? '—'} ha</p></div></header>
-      <TerritoryMap allOrchards orchardId={huerto.id} label={`Mapa de ${huerto.nombre}`} />
-      <section className="two-column"><div><p className="eyebrow">Datos del predio</p><h2>Información registrada</h2><dl className="evidence-list"><div><dt>Cultivo</dt><dd>{huerto.cultivo}</dd></div><div><dt>Estado actual</dt><dd>{huerto.estado}</dd></div><div><dt>Polígono</dt><dd>{huerto.poligono ? 'Delimitado' : 'Pendiente'}</dd></div><div><dt>Fecha de registro</dt><dd>{new Date(huerto.created_at).toLocaleDateString('es-MX')}</dd></div></dl></div><form className="review-form" onSubmit={(event) => { void saveStatus(event) }}><p className="eyebrow">Panel de revisión</p><h2>Actualizar estado</h2><label>Estado<select value={estado} onChange={(event) => setEstado(event.target.value)}><option value="activo">Activo</option><option value="pendiente">Pendiente</option><option value="requiere revisión">Requiere revisión</option><option value="requiere información">Requiere información</option></select></label><p>Este cambio se guardará en el campo <b>estado</b> de la tabla <b>huertos</b>.</p><button className="button" disabled={saving}>{saving ? 'Guardando…' : 'Guardar estado'}</button>{message && <p className="success-message" role="status">{message}</p>}</form></section>
-      <section className="audit-request-panel"><div><p className="eyebrow">Agente de auditoría</p><h2>Generar auditoría</h2><p>Primero se consulta el expediente geoespacial y después Vigía prepara el dictamen y el PDF.</p></div><div><button className="button" type="button" onClick={() => { void generateAudit() }} disabled={agentRunning} data-agent-action="create-audit" data-huerto-id={huerto.id}>{agentRunning ? 'Generando auditoría…' : 'Generar auditoría con agente →'}</button><small className="audit-pdf-note">{agentStatus || 'La generación puede tardar hasta dos minutos.'}</small>{agentError && <p className="form-error" role="alert">{agentError}</p>}{documentResult && <button className="text-button" type="button" onClick={() => downloadBase64File(documentResult.contentBase64, documentResult.filename, documentResult.mediaType)}>Descargar {documentResult.mediaType === 'application/pdf' ? 'PDF' : 'Word'} →</button>}</div></section>
+      <header className="page-header"><div><p className="eyebrow">Auditoría de huerta</p><h1>{huerto.nombre}</h1><p>{huerto.municipio} · {huerto.localidad} · {huerto.superficie_ha?.toFixed(2) ?? '—'} ha</p></div></header>
+      <TerritoryMap orchardId={huerto.id} label={`Mapa de ${huerto.nombre}`} />
+      <section className="two-column"><div><p className="eyebrow">Datos del predio</p><h2>Información registrada</h2><dl className="evidence-list"><div><dt>Cultivo</dt><dd>{huerto.cultivo}</dd></div><div><dt>Estado actual</dt><dd>{huerto.estado}</dd></div><div><dt>Polígono</dt><dd>{huerto.poligono ? 'Delimitado' : 'Pendiente'}</dd></div><div><dt>Fecha de registro</dt><dd>{new Date(huerto.created_at).toLocaleDateString('es-MX')}</dd></div></dl></div><form className="review-form" onSubmit={(event) => { void saveStatus(event) }}><p className="eyebrow">Control de auditoría</p><h2>Actualizar estado</h2><label>Estado<select value={estado} onChange={(event) => setEstado(event.target.value)}><option value="activo">Activo</option><option value="pendiente">Pendiente</option><option value="requiere revisión">Requiere revisión</option><option value="requiere información">Requiere información</option></select></label><p>Este cambio se guardará en el campo <b>estado</b> de la tabla <b>huertos</b>.</p><button className="button" disabled={saving}>{saving ? 'Guardando…' : 'Guardar estado'}</button>{message && <p className="success-message" role="status">{message}</p>}</form></section>
+      <section className="audit-request-panel"><div><p className="eyebrow">Agente Vigía</p><h2>Generar auditoría</h2><p>Se consulta el expediente geoespacial y después Vigía prepara el dictamen y el documento.</p></div><div><button className="button" type="button" onClick={() => { void generateAudit() }} disabled={agentRunning} data-agent-action="create-audit" data-huerto-id={huerto.id}>{agentRunning ? 'Generando auditoría…' : 'Generar auditoría con agente →'}</button><small className="audit-pdf-note">{agentStatus || 'La generación puede tardar hasta dos minutos.'}</small>{agentError && <p className="form-error" role="alert">{agentError}</p>}{documentResult && <button className="text-button" type="button" onClick={() => downloadBase64File(documentResult.contentBase64, documentResult.filename, documentResult.mediaType)}>Descargar {documentResult.mediaType === 'application/pdf' ? 'PDF' : 'Word'} →</button>}</div></section>
     </>}
   </AppLayout>
 }

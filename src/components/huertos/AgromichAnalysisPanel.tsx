@@ -56,10 +56,10 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
     showLoading('Generando expediente...', 'Consultamos el análisis ambiental y las imágenes históricas.')
     try {
       const { data } = await supabase.auth.getUser()
-      const producer = String(data.user?.user_metadata?.full_name ?? data.user?.email ?? 'Productor GeoVigía')
+      const responsableRegistro = String(data.user?.user_metadata?.full_name ?? data.user?.email ?? 'Responsable del registro')
       const years = [2018, 2020, 2022, 2024, new Date().getFullYear()]
       const [analysisResponse, imagesResponse] = await Promise.all([
-        fetch(`${apiBase}/api/v1/expediente/generar-completo`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre_huerto: huerto.nombre, productor: producer, municipio: huerto.municipio, cultivo: huerto.cultivo, geometry: huerto.poligono, anio_inicio: 2018, anio_fin: new Date().getFullYear() }) }),
+        fetch(`${apiBase}/api/v1/expediente/generar-completo`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre_huerto: huerto.nombre, productor: responsableRegistro, municipio: huerto.municipio, cultivo: huerto.cultivo, geometry: huerto.poligono, anio_inicio: 2018, anio_fin: new Date().getFullYear() }) }),
         fetch(`${apiBase}/api/v1/expediente/imagenes-historicas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ geometry: huerto.poligono, anios: years, cultivo: huerto.cultivo, visualizacion: 'rgb', mes_inicio: 1, mes_fin: 4 }) }),
       ])
       if (!analysisResponse.ok) throw new Error('AgroMich no pudo generar el expediente.')

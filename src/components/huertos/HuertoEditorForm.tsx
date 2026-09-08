@@ -52,7 +52,7 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
       const saved = huertoId ? await updateHuerto(huertoId, input) : await createHuerto(input)
       closeLoading()
       await showSuccess(huertoId ? 'Cambios guardados' : 'Huerta registrada', 'La información quedó guardada correctamente.')
-      navigate(`/productor/huertos/${saved.id}/editar`)
+      navigate(`/auditor/huertas/${saved.id}/editar`)
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'No se pudo guardar la huerta.'
       closeLoading(); setError(message); void showError('No se pudo guardar', message)
