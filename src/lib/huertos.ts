@@ -48,3 +48,11 @@ export async function updateHuerto(id: string, input: HuertoInput) {
   if (error) throw error
   return data as Huerto
 }
+
+export async function solicitarAuditoria(id: string) {
+  const { data: auth, error: authError } = await supabase.auth.getUser()
+  if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
+  const { data, error } = await supabase.from('huertos').update({ estado: 'pendiente' }).eq('id', id).eq('propietario_id', auth.user.id).select().single()
+  if (error) throw error
+  return data as Huerto
+}
