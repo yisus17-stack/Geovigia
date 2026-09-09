@@ -31,6 +31,20 @@ export function formatHuertoDate(huerto: Huerto) {
   return Number.isNaN(parsed.valueOf()) ? 'Registro activo' : parsed.toLocaleDateString('es-MX')
 }
 
+export function formatCropName(crop: string | null | undefined) {
+  const value = crop?.trim() ?? ''
+  return value ? `${value[0].toLocaleUpperCase('es-MX')}${value.slice(1)}` : 'Sin especificar'
+}
+
+export function formatAuditStatus(status: string | null | undefined) {
+  switch (status?.trim().toLocaleLowerCase('es-MX')) {
+    case 'activo': return 'Sin auditoría iniciada'
+    case 'pendiente': return 'En revisión'
+    case 'aprobado': return 'Auditoría aprobada'
+    default: return status || 'Sin estado'
+  }
+}
+
 export async function getHuerto(id: string) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')

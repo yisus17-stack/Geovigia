@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import logoImage from '../assets/logo.png'
 import michoacanLogo from '../assets/mejor.png'
 import { supabase } from '../lib/supabase'
@@ -28,6 +28,7 @@ function NavGlyph({ icon }: { icon: NavIcon }) {
 
 function AppLayout({ children, breadcrumbCurrent }: AppLayoutProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const location = useLocation()
   const navigate = useNavigate()
 
   async function signOut() {
@@ -41,7 +42,7 @@ function AppLayout({ children, breadcrumbCurrent }: AppLayoutProps) {
       <div className="sidebar-panel">
         <Link className="app-brand" to="/auditor" aria-label="GeoVigía, inicio"><img src={logoImage} alt="GeoVigía" /></Link>
         <nav className="app-nav" aria-label="Navegación de Auditor">
-          {links.map((link) => <NavLink key={link.to} to={link.to} end={link.to === '/auditor'} onClick={() => setIsOpen(false)}><NavGlyph icon={link.icon} />{link.label}</NavLink>)}
+          {links.map((link) => <NavLink key={link.to} to={link.to} end={link.to === '/auditor'} onClick={() => setIsOpen(false)} className={({ isActive }) => isActive || (link.to === '/auditor' && location.pathname.startsWith('/auditor/auditorias')) ? 'active' : ''}><NavGlyph icon={link.icon} />{link.label}</NavLink>)}
         </nav>
         <div className="sidebar-profile">
           <span className="profile-dot">GV</span>

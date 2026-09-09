@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import TerritoryMap from '../../components/map/TerritoryMap'
 import logoImage from '../../assets/logo.png'
-import { getHuertoAuditoria } from '../../lib/auditoria'
+import { actualizarEstadoHuerto, getHuertoAuditoria } from '../../lib/auditoria'
 import { downloadBase64File, generateAuditWithEve, type EveDocumentResult } from '../../lib/eve'
 import { supabase } from '../../lib/supabase'
-import { formatHuertoDate, type Huerto } from '../../lib/huertos'
+import { formatCropName, formatHuertoDate, type Huerto } from '../../lib/huertos'
 import { getExpedientResponse, getLatestSavedExpedient, saveAgromichAnalysis, type PersistedImage } from '../../lib/analisis'
 import { closeLoading, showError, showLoading, showSuccess, updateLoading } from '../../lib/alerts'
 
@@ -69,6 +69,8 @@ function RevisionPage() {
   const [documentResult, setDocumentResult] = useState<EveDocumentResult | null>(null)
   const [analysisId, setAnalysisId] = useState('')
   const [expedientReady, setExpedientReady] = useState(false)
+  const [approvingAudit, setApprovingAudit] = useState(false)
+  const generatePdfRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     let active = true
@@ -87,6 +89,15 @@ function RevisionPage() {
     }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [id])
+
+  // Una auditoría aprobada conserva el acceso al documento; el cierre no debe bloquear su descarga.
+  useEffect(() => {
+    if (huerto?.estado.toLowerCase() !== 'aprobado') return
+    const pdfButton = document.querySelector<HTMLButtonElement>('.audit-wizard .button-secondary')
+    if (!pdfButton) return
+    pdfButton.disabled = false
+    pdfButton.onclick = () => { generatePdfRef.current() }
+  }, [agentRunning, documentResult, huerto?.estado])
 
   async function generateAudit() {
     if (!huerto) return
@@ -174,7 +185,7 @@ function RevisionPage() {
     }
   }
 
-  async function generatePdfFromSavedExpedient() {
+  const generatePdfFromSavedExpedient = useCallback(async () => {
     if (!analysisId) {
       setAgentError('Primero guarda el expediente de AgroMich.')
       return
@@ -206,16 +217,38 @@ function RevisionPage() {
       window.clearTimeout(timeout)
       setAgentRunning(false)
     }
+  }, [analysisId, huerto])
+
+  async function approveAudit() {
+    if (!huerto) return
+    setApprovingAudit(true)
+    setAgentError('')
+    try {
+      const updatedHuerto = await actualizarEstadoHuerto(huerto.id, 'aprobado')
+      setHuerto(updatedHuerto)
+      setAgentStatus('Auditoría aprobada. El predio ya cuenta con visto bueno.')
+      await showSuccess('Auditoría aprobada', 'El predio recibió el visto bueno y el expediente queda cerrado.')
+    } catch (cause) {
+      const detail = cause instanceof Error ? cause.message : 'No pudimos aprobar la auditoría.'
+      setAgentError(detail)
+      void showError('No se pudo aprobar la auditoría', detail)
+    } finally {
+      setApprovingAudit(false)
+    }
   }
 
+  useEffect(() => {
+    generatePdfRef.current = () => { void generatePdfFromSavedExpedient() }
+  }, [generatePdfFromSavedExpedient])
+
   return <AppLayout breadcrumbCurrent={huerto?.nombre}>
-    {loading && <p className="loading-state">Cargando huerta desde Supabase…</p>}
+    {loading && <p className="loading-state">Cargando predio…</p>}
     {error && <p className="form-error" role="alert">{error}</p>}
     {!loading && huerto && <>
       <header className="page-header audit-page-header"><div><p className="eyebrow">Auditoría de huerta</p><h1>{huerto.nombre}</h1><p>{huerto.municipio} · {huerto.localidad} · {huerto.superficie_ha?.toFixed(2) ?? '—'} ha</p></div><aside aria-hidden="true"><img src={logoImage} alt="" /></aside></header>
       <TerritoryMap orchardId={huerto.id} label={`Mapa de ${huerto.nombre}`} />
-      <section className="audit-record-info"><p className="eyebrow">Datos del predio</p><h2>Información registrada</h2><dl className="evidence-list"><div><dt>Cultivo</dt><dd>{huerto.cultivo}</dd></div><div><dt>Estado actual</dt><dd>{huerto.estado}</dd></div><div><dt>Polígono</dt><dd>{huerto.poligono ? 'Delimitado' : 'Pendiente'}</dd></div><div><dt>Fecha de registro</dt><dd>{formatHuertoDate(huerto)}</dd></div></dl></section>
-      <section className="audit-request-panel audit-wizard"><div><p className="eyebrow">Agente Vigía</p><h2>Generar auditoría</h2><p>Completa los pasos en orden para preparar el dictamen y su documento final.</p></div><ol aria-label="Pasos para generar la auditoría"><li className={expedientReady ? 'is-complete' : agentRunning ? 'is-running' : ''}><span>1</span><div><b>Preparar expediente</b><small>Analiza la evidencia geoespacial y guárdala.</small></div><button className="button" type="button" onClick={() => { void generateAudit() }} disabled={agentRunning} data-agent-action="create-audit" data-huerto-id={huerto.id}>{agentRunning && !expedientReady ? 'Generando expediente…' : expedientReady ? 'Expediente listo' : 'Generar expediente →'}</button></li><li className={documentResult ? 'is-complete' : agentRunning && expedientReady ? 'is-running' : !expedientReady ? 'is-locked' : ''}><span>2</span><div><b>Generar documento</b><small>Crea el PDF con Vigía a partir del expediente.</small></div><button className="button button-secondary" type="button" onClick={() => { void generatePdfFromSavedExpedient() }} disabled={!expedientReady || agentRunning}>{agentRunning && expedientReady ? 'Generando PDF…' : 'Generar PDF con Vigía →'}</button></li></ol><small className="audit-pdf-note">{agentStatus || (expedientReady ? 'El expediente está listo. Continúa con el paso 2.' : 'Completa el paso 1 para habilitar el PDF.')}</small>{agentError && <p className="form-error" role="alert">{agentError}</p>}{documentResult && <button className="text-button" type="button" onClick={() => downloadBase64File(documentResult.contentBase64, documentResult.filename, documentResult.mediaType)}>Descargar {documentResult.mediaType === 'application/pdf' ? 'PDF' : 'Word'} →</button>}</section>
+      <section className="audit-record-info"><p className="eyebrow">Datos del predio</p><h2>Información registrada</h2><dl className="evidence-list"><div><dt>Cultivo</dt><dd>{formatCropName(huerto.cultivo)}</dd></div><div><dt>Estado actual</dt><dd>{huerto.estado}</dd></div><div><dt>Polígono</dt><dd>{huerto.poligono ? 'Delimitado' : 'Pendiente'}</dd></div><div><dt>Fecha de registro</dt><dd>{formatHuertoDate(huerto)}</dd></div></dl></section>
+      <section className="audit-request-panel audit-wizard"><div><p className="eyebrow">Agente Vigía</p><h2>Generar auditoría</h2><p>Completa los pasos en orden, revisa el documento y da el visto bueno final.</p></div><ol aria-label="Pasos para generar la auditoría"><li className={expedientReady ? 'is-complete' : agentRunning ? 'is-running' : ''}><span>1</span><div><b>Preparar expediente</b><small>Analiza la evidencia geoespacial y guárdala.</small></div><button className="button" type="button" onClick={() => { void generateAudit() }} disabled={agentRunning || huerto.estado.toLowerCase() === 'aprobado'} data-agent-action="create-audit" data-huerto-id={huerto.id}>{agentRunning && !expedientReady ? 'Generando expediente…' : expedientReady ? 'Expediente listo' : 'Generar expediente →'}</button></li><li className={documentResult ? 'is-complete' : agentRunning && expedientReady ? 'is-running' : !expedientReady ? 'is-locked' : ''}><span>2</span><div><b>Generar documento</b><small>Crea el PDF con Vigía a partir del expediente.</small></div><button className="button button-secondary" type="button" onClick={() => { void generatePdfFromSavedExpedient() }} disabled={!expedientReady || agentRunning || huerto.estado.toLowerCase() === 'aprobado'}>{agentRunning && expedientReady ? 'Generando PDF…' : 'Generar PDF con Vigía →'}</button></li><li className={huerto.estado.toLowerCase() === 'aprobado' ? 'is-complete' : !documentResult ? 'is-locked' : ''}><span>3</span><div><b>Dar visto bueno</b><small>Confirma que revisaste el expediente y cierra la auditoría.</small></div><button className="button button-approve" type="button" onClick={() => { void approveAudit() }} disabled={!documentResult || approvingAudit || huerto.estado.toLowerCase() === 'aprobado'}>{huerto.estado.toLowerCase() === 'aprobado' ? 'Auditoría aprobada' : approvingAudit ? 'Aprobando…' : 'Dar visto bueno →'}</button></li></ol><small className="audit-pdf-note">{agentStatus || (expedientReady ? 'El expediente está listo. Continúa con el paso 2.' : 'Completa el paso 1 para habilitar el PDF.')}</small>{agentError && <p className="form-error" role="alert">{agentError}</p>}{documentResult && <button className="text-button" type="button" onClick={() => downloadBase64File(documentResult.contentBase64, documentResult.filename, documentResult.mediaType)}>Descargar {documentResult.mediaType === 'application/pdf' ? 'PDF' : 'Word'} →</button>}</section>
     </>}
   </AppLayout>
 }

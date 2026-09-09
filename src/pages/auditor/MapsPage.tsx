@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import AppLayout from '../../components/AppLayout'
 import TerritoryMap, { type MapOrchard } from '../../components/map/TerritoryMap'
+import { formatCropName } from '../../lib/huertos'
 
 function formatDate(value: string) {
   const date = new Date(value)
@@ -36,7 +37,7 @@ function MapsPage() {
       <aside className={`map-orchard-card ${selectedOrchard ? 'is-visible' : ''}`} aria-live="polite">
         {selectedOrchard ? <>
           <p className="eyebrow">Datos del predio</p><h2>Información registrada</h2>
-          <dl><div><dt>Cultivo</dt><dd>{selectedOrchard.crop || 'Sin especificar'}</dd></div><div><dt>Municipio</dt><dd>{selectedOrchard.municipality || 'Sin especificar'}</dd></div><div><dt>Localidad</dt><dd>{selectedOrchard.locality || 'Sin especificar'}</dd></div><div><dt>Superficie</dt><dd>{selectedOrchard.area?.toFixed(2) ?? '—'} ha</dd></div><div><dt>Polígono</dt><dd>Delimitado</dd></div><div><dt>Estado</dt><dd><span className={`status-chip ${selectedOrchard.status.toLowerCase() === 'activo' ? 'is-active' : 'is-pending'}`}>{selectedOrchard.status}</span></dd></div></dl>
+          <dl><div><dt>Cultivo</dt><dd>{formatCropName(selectedOrchard.crop)}</dd></div><div><dt>Municipio</dt><dd>{selectedOrchard.municipality || 'Sin especificar'}</dd></div><div><dt>Localidad</dt><dd>{selectedOrchard.locality || 'Sin especificar'}</dd></div><div><dt>Superficie</dt><dd>{selectedOrchard.area?.toFixed(2) ?? '—'} ha</dd></div><div><dt>Polígono</dt><dd>Delimitado</dd></div><div><dt>Estado</dt><dd><span className={`status-chip ${selectedOrchard.status.toLowerCase() === 'activo' ? 'is-active' : 'is-pending'}`}>{selectedOrchard.status}</span></dd></div></dl>
           <Link className="button" to={`/auditor/huertas/${selectedOrchard.id}`}>Ver detalle</Link>
         </> : <><p className="eyebrow">Consulta rápida</p><h2>Selecciona un predio</h2><p>Haz clic en un polígono para ver su ubicación, estado y evidencia disponible. Presiona una etiqueta para acercarte a él.</p></>}
       </aside>
