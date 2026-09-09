@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as L from 'leaflet'
 import '@geoman-io/leaflet-geoman-free'
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
@@ -19,6 +19,7 @@ type OrchardDrawingMapProps = {
   initialPolygon?: PolygonCoordinates | null
   label?: string
   onPolygonChange: (coordinates: PolygonCoordinates | null, hectares: number | null) => void
+  onPolygonReady?: (ready: boolean) => void
 }
 
 type LayerEvent = L.LeafletEvent & { layer: L.Layer }
@@ -54,7 +55,17 @@ function DrawingMapAttribution() {
   return null
 }
 
-const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(function MapControls({ initialPolygon, label = '', onPolygonChange }, ref) {
+function DrawingMapZoomLimit({ historical }: { historical: boolean }) {
+  const map = useMap()
+  useEffect(() => {
+    const maxZoom = historical ? 14 : 18
+    map.setMaxZoom(maxZoom)
+    if (map.getZoom() > maxZoom) map.flyTo(map.getCenter(), maxZoom, { duration: .35 })
+  }, [historical, map])
+  return null
+}
+
+const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(function MapControls({ initialPolygon, label = '', onPolygonChange, onPolygonReady }, ref) {
   const map = useMap()
   const layerRef = useRef<L.Polygon | null>(null)
   const loadedInitialRef = useRef(false)
@@ -99,6 +110,7 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
       applyLabel(event.layer)
       listenToPolygonChanges(event.layer, emitPolygon)
       emitPolygon(event.layer)
+      onPolygonReady?.(true)
     }
     const onEdit = (event: LayerEvent) => {
       if (event.layer instanceof L.Polygon) emitPolygon(event.layer)
@@ -106,6 +118,7 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
     const onRemove = () => {
       layerRef.current = null
       emitPolygon(null)
+      onPolygonReady?.(false)
     }
     map.on('pm:create', onCreate)
     map.on('pm:edit', onEdit)
@@ -116,7 +129,7 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
       map.off('pm:remove', onRemove)
       map.pm.removeControls()
     }
-  }, [applyLabel, emitPolygon, map])
+  }, [applyLabel, emitPolygon, map, onPolygonReady])
 
   useEffect(() => {
     if (loadedInitialRef.current || !initialPolygon?.[0]?.length) return
@@ -129,7 +142,8 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
     listenToPolygonChanges(layer, emitPolygon)
     map.fitBounds(layer.getBounds(), { padding: [28, 28] })
     emitPolygon(layer)
-  }, [applyLabel, emitPolygon, initialPolygon, map])
+    onPolygonReady?.(true)
+  }, [applyLabel, emitPolygon, initialPolygon, map, onPolygonReady])
 
   useEffect(() => { applyLabel(layerRef.current) }, [applyLabel])
 
@@ -156,6 +170,7 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
       layerRef.current?.remove()
       layerRef.current = null
       emitPolygon(null)
+      onPolygonReady?.(false)
     },
   }))
 
@@ -163,13 +178,19 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
 })
 
 const OrchardDrawingMap = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(function OrchardDrawingMap({ initialPolygon, label, onPolygonChange }, ref) {
+  const [polygonReady, setPolygonReady] = useState(Boolean(initialPolygon?.[0]?.length))
+  const [satellite, setSatellite] = useState<'sentinel2' | 'landsat'>('sentinel2')
+  const [year, setYear] = useState(2023)
+  const historicalTileUrl = satellite === 'sentinel2'
+    ? `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-${year}_3857/default/g/{z}/{y}/{x}.jpg`
+    : `https://tiles.maps.eox.at/wmts/1.0.0/landsat_${year}_3857/default/g/{z}/{y}/{x}.jpg`
+
   return <MapContainer className="leaflet-orchard-map" center={[19.42, -102.06]} zoom={13} scrollWheelZoom>
-    <TileLayer
-      attribution="&copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
-      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-    />
+    {polygonReady ? <TileLayer key={`${satellite}-${year}`} attribution="&copy; EOX Sentinel-2 Cloudless / Landsat" url={historicalTileUrl} maxNativeZoom={14} maxZoom={14} /> : <TileLayer attribution="&copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />}
     <DrawingMapAttribution />
-    <MapControls ref={ref} initialPolygon={initialPolygon} label={label} onPolygonChange={onPolygonChange} />
+    <DrawingMapZoomLimit historical={polygonReady} />
+    <MapControls ref={ref} initialPolygon={initialPolygon} label={label} onPolygonChange={onPolygonChange} onPolygonReady={setPolygonReady} />
+    {polygonReady && <div className="drawing-history-controls" role="group" aria-label="Vista histórica del predio"><span>Revisión histórica</span><label>Fuente<select value={satellite} onChange={(event) => setSatellite(event.target.value as 'sentinel2' | 'landsat')}><option value="sentinel2">Sentinel-2</option><option value="landsat">Landsat</option></select></label><label>Año<select value={year} onChange={(event) => setYear(Number(event.target.value))}>{Array.from({ length: 8 }, (_, index) => 2023 - index).map((value) => <option key={value} value={value}>{value}</option>)}</select></label></div>}
   </MapContainer>
 })
 

@@ -111,6 +111,15 @@ function ResetMapBounds({ orchards, resetKey }: { orchards: MapOrchard[]; resetK
   return null
 }
 
+function MapZoomLimit({ maxZoom }: { maxZoom: number }) {
+  const map = useMap()
+  useEffect(() => {
+    map.setMaxZoom(maxZoom)
+    if (map.getZoom() > maxZoom) map.flyTo(map.getCenter(), maxZoom, { duration: .35 })
+  }, [map, maxZoom])
+  return null
+}
+
 function OrchardPolygon({ orchard, index, onSelect }: { orchard: MapOrchard; index: number; onSelect?: (orchard: MapOrchard) => void }) {
   const map = useMap()
   const points = orchard.positions.flat()
@@ -150,7 +159,10 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
   const [focusedOrchardId, setFocusedOrchardId] = useState<string | null>(null)
   const [resetMapKey, setResetMapKey] = useState(0)
   const handleChangingBounds = useCallback(() => setBaseMapLoaded(false), [])
-  const availablePeriods = ['Actual', ...Array.from({ length: new Date().getFullYear() - 2018 + 1 }, (_, index) => String(new Date().getFullYear() - index))]
+  const availablePeriods = ['Actual', '2025', '2024', '2023', '2022', '2021', '2020']
+  const selectedYear = Number(selectedPeriod)
+  const sentinelYear = Number.isInteger(selectedYear) && selectedYear >= 2020 && selectedYear <= 2025 ? selectedYear : null
+  const sentinelTileUrl = sentinelYear ? `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-${sentinelYear}_3857/default/g/{z}/{y}/{x}.jpg` : null
 
   useEffect(() => {
     let active = true
@@ -221,6 +233,10 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
       const resetError = window.setTimeout(() => setHistoricalImageError(''), 0)
       return () => { window.clearTimeout(reset); window.clearTimeout(resetError) }
     }
+    if (sentinelYear) {
+      const reset = window.setTimeout(() => { setHistoricalImage(null); setHistoricalImageError(''); setLoadingHistoricalImage(false) }, 0)
+      return () => window.clearTimeout(reset)
+    }
     if (!savedImagesLoaded) return
     let active = true
     const year = Number(selectedPeriod)
@@ -249,7 +265,7 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
       if (active) setHistoricalImage(image)
     }).catch(() => { if (active) { setHistoricalImage(null); setHistoricalImageError(`No hay imagen histórica disponible para ${selectedPeriod}.`); setLoadingHistoricalImage(false) } })
     return () => { active = false }
-  }, [databaseOrchards, savedHistoricalImages, savedImagesLoaded, selectedPeriod])
+  }, [databaseOrchards, savedHistoricalImages, savedImagesLoaded, selectedPeriod, sentinelYear])
 
   const visibleOrchards = databaseOrchards
   const selectOrResetOrchard = useCallback((orchard: MapOrchard) => {
@@ -266,6 +282,8 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
   return <section className={`territory-map ${compact ? 'territory-map-compact' : ''}`} aria-label={label}>
     <MapContainer center={[19.425, -102.062]} zoom={14} scrollWheelZoom={false} className="territory-leaflet-map">
       <TileLayer attribution="&copy; Esri, Maxar, Earthstar Geographics" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" eventHandlers={{ load: () => setBaseMapLoaded(true), tileerror: () => setBaseMapLoaded(true) }} />
+      {sentinelTileUrl && <TileLayer key={sentinelTileUrl} attribution="Sentinel-2 Cloudless by EOX" url={sentinelTileUrl} maxNativeZoom={14} maxZoom={14} opacity={1} eventHandlers={{ load: () => setLoadingHistoricalImage(false), tileerror: () => { setLoadingHistoricalImage(false); setHistoricalImageError(`No se pudo cargar Sentinel-2 para ${sentinelYear}.`) } }} />}
+      <MapZoomLimit maxZoom={sentinelTileUrl ? 14 : 18} />
       {historicalImage?.tileUrlTemplate && <TileLayer key={historicalImage.tileUrlTemplate} url={historicalImage.tileUrlTemplate} bounds={historicalImage.bounds ? [[historicalImage.bounds[1], historicalImage.bounds[0]], [historicalImage.bounds[3], historicalImage.bounds[2]]] : undefined} opacity={1} eventHandlers={{ load: () => { if (historicalImage.year === Number(selectedPeriod)) setLoadingHistoricalImage(false) }, tileerror: () => { if (historicalImage.year === Number(selectedPeriod)) setLoadingHistoricalImage(false) } }} />}
       {historicalImage?.thumbnailUrl && !historicalImage.tileUrlTemplate && visibleOrchards[0] && <ImageOverlay url={historicalImage.thumbnailUrl} bounds={visibleOrchards[0].positions[0]} opacity={1} eventHandlers={{ load: () => { if (historicalImage.year === Number(selectedPeriod)) setLoadingHistoricalImage(false) }, error: () => { if (historicalImage.year === Number(selectedPeriod)) setLoadingHistoricalImage(false) } }} />}
       {loadingHistoricalImage && visibleOrchards[0] && <OrchardImageLoader orchard={visibleOrchards[0]} />}
