@@ -1,6 +1,18 @@
 /* Shared workspace treatment for the Auditor platform. */
 .app-content .page-header:not(.dashboard-intro) { margin-bottom: 2rem; padding-bottom: 1.6rem; }.app-content .page-header h1 { font-size: clamp(2rem, 3.3vw, 3.25rem); letter-spacing: -.045em; line-height: 1.08; }.app-content .page-header .eyebrow { margin-bottom: .6rem; }
+.breadcrumbs { margin: 0 0 1.35rem; }
+.breadcrumbs ol { align-items: center; color: #8a938e; display: flex; flex-wrap: wrap; gap: 0; list-style: none; margin: 0; padding: 0; }
+.breadcrumbs li { align-items: center; display: flex; font-size: .72rem; font-weight: 600; min-width: 0; }
+.breadcrumbs li + li::before { color: #b2bbb5; content: '›'; font-size: 1rem; font-weight: 400; margin: 0 .55rem; }
+.breadcrumbs a { color: #23824f; text-decoration: none; }
+.breadcrumbs a:hover { color: #073d2d; text-decoration: underline; text-underline-offset: .18rem; }
+.breadcrumbs a:focus-visible { border-radius: .2rem; }
+.breadcrumbs [aria-current='page'] { color: #52605a; max-width: min(32rem, 48vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coordinates-field { grid-column: 1 / -1; }
+.form-fields textarea { border: 1px solid #d6dfd9; border-radius: .45rem; line-height: 1.45; padding: .85rem 1rem; resize: vertical; width: 100%; }
+.coordinates-field small { color: #66706b; display: block; font-size: .7rem; font-weight: 400; line-height: 1.45; margin-top: .35rem; }
+.location-button { justify-self: start; }
 .app-nav a { align-items: center; display: flex; gap: .72rem; }.nav-glyph { fill: none; height: 1.15rem; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; width: 1.15rem; }.app-nav a.active .nav-glyph { stroke-width: 2.1; }
 .app-nav::before { border-bottom: 1px solid #e4e8e5; content: 'Espacio de trabajo'; color: #66706b; font-size: .62rem; font-weight: 800; letter-spacing: .12em; margin: 2.8rem .45rem 0; padding-bottom: .75rem; text-transform: uppercase; }.app-nav { margin-top: .65rem; }.app-sidebar .sidebar-user { margin-inline: .15rem; }
 .data-table, .form-panel, .review-form, .orchard-summary { border-color: #e0e6e2; }.table-head { background: #fafbfa; }.table-row { min-height: 4.6rem; }.table-row:hover { background: #fbfdfb; }.filters { background: #fafbfa; border: 1px solid #e4e8e5; border-radius: .6rem; padding: .8rem; width: max-content; }.filters select { background: #fff; }.orchard-summary, .review-form, .form-panel { box-shadow: none; }.two-column, .split-section { gap: 4rem; }.criteria { max-width: 980px; }.territory-map { border: 1px solid #e4e8e5; border-radius: .6rem; }.map-legend { border: 1px solid #e4e8e5; box-shadow: 0 4px 12px rgb(7 61 45 / 8%); }.button { border-radius: .45rem; }.badge { font-weight: 700; }.authority-map { border: 1px solid #e4e8e5; border-radius: .65rem; }
-@media (max-width: 680px) { .app-nav::before { margin-top: 1rem; }.filters { width: 100%; }.two-column, .split-section { gap: 2rem; } }
+@media (max-width: 680px) { .app-nav::before { margin-top: 1rem; }.filters { width: 100%; }.two-column, .split-section { gap: 2rem; }.breadcrumbs { margin-bottom: 1rem; }.breadcrumbs li { font-size: .68rem; }.breadcrumbs li + li::before { margin-inline: .4rem; }.breadcrumbs [aria-current='page'] { max-width: 42vw; } }

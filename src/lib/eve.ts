@@ -69,6 +69,10 @@ export function downloadBase64File(contentBase64: string, filename: string, medi
 export async function generateAuditWithEve(expedient: unknown, onStatus: (message: string) => void, signal?: AbortSignal) {
   const eveUrl = import.meta.env.VITE_EVE_URL
   if (!eveUrl) throw new Error('Falta configurar VITE_EVE_URL.')
+  const masterExpedient = expedient && typeof expedient === 'object' && 'expediente' in expedient
+    ? (expedient as { expediente?: unknown }).expediente ?? expedient
+    : expedient
+  expedient = masterExpedient
   const message = `Genera la auditoría y el informe PDF usando este expediente maestro. Usa la tool generar_resolucion_pdf y devuelve el archivo PDF.\n\nExpediente:\n${JSON.stringify(expedient, null, 2)}`
   onStatus('Enviando expediente al agente…')
   const sessionResponse = await fetch(`${eveUrl.replace(/\/$/, '')}/eve/v1/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }), signal })

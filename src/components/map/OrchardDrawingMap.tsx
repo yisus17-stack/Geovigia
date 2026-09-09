@@ -22,6 +22,16 @@ type OrchardDrawingMapProps = {
 
 type LayerEvent = L.LeafletEvent & { layer: L.Layer }
 
+function listenToPolygonChanges(layer: L.Polygon, emitPolygon: (polygon: L.Polygon) => void) {
+  const onLayerChange = () => emitPolygon(layer)
+  layer.on('pm:edit', onLayerChange)
+  layer.on('pm:change', onLayerChange)
+  return () => {
+    layer.off('pm:edit', onLayerChange)
+    layer.off('pm:change', onLayerChange)
+  }
+}
+
 function calculateHectares(points: L.LatLng[]) {
   if (points.length < 3) return 0
   const meanLatitude = points.reduce((sum, point) => sum + point.lat, 0) / points.length
@@ -72,6 +82,7 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
       if (!(event.layer instanceof L.Polygon)) return
       layerRef.current?.remove()
       layerRef.current = event.layer
+      listenToPolygonChanges(event.layer, emitPolygon)
       emitPolygon(event.layer)
     }
     const onEdit = (event: LayerEvent) => {
@@ -99,6 +110,7 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
     const layer = L.polygon(points, { color: '#23824f', weight: 2, fillOpacity: .16 }).addTo(map)
     layerRef.current = layer
     loadedInitialRef.current = true
+    listenToPolygonChanges(layer, emitPolygon)
     map.fitBounds(layer.getBounds(), { padding: [28, 28] })
     emitPolygon(layer)
   }, [emitPolygon, initialPolygon, map])

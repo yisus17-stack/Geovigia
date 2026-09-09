@@ -3,8 +3,9 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import logoImage from '../assets/logo.png'
 import sideImage from '../assets/side.png'
 import { supabase } from '../lib/supabase'
+import Breadcrumbs from './Breadcrumbs'
 
-type AppLayoutProps = { children: ReactNode }
+type AppLayoutProps = { children: ReactNode; breadcrumbCurrent?: string }
 type NavIcon = 'overview' | 'orchards' | 'reviews'
 
 const links: { to: string; label: string; icon: NavIcon }[] = [
@@ -23,7 +24,7 @@ function NavGlyph({ icon }: { icon: NavIcon }) {
   return <svg aria-hidden="true" className="nav-glyph" viewBox="0 0 24 24"><path d={iconPaths[icon]} /></svg>
 }
 
-function AppLayout({ children }: AppLayoutProps) {
+function AppLayout({ children, breadcrumbCurrent }: AppLayoutProps) {
   const [isOpen, setIsOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -48,7 +49,7 @@ function AppLayout({ children }: AppLayoutProps) {
         <div className="workspace-title"><b>GeoVigía</b><small>Auditoría territorial</small></div>
         <div className="workspace-profile"><span className="profile-dot">GV</span><span><b>Auditor</b><small>Plataforma de seguimiento</small></span><button className="header-signout" type="button" onClick={() => { void signOut() }}>Salir</button></div>
       </header>
-      <div className="app-content">{children}</div>
+      <div className="app-content"><Breadcrumbs currentLabel={breadcrumbCurrent} />{children}</div>
     </main>
   </div>
 }

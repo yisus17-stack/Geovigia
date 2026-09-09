@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import OrchardDrawingMap, { type OrchardMapHandle, type PolygonCoordinates } from '../map/OrchardDrawingMap'
+import OrchardDrawingMap, { type OrchardMapHandle } from '../map/OrchardDrawingMap'
+import { parsePolygonCoordinates, type PolygonCoordinates } from '../../lib/polygon'
 import { createHuerto, getHuerto, updateHuerto } from '../../lib/huertos'
 import { closeLoading, showError, showLoading, showSuccess } from '../../lib/alerts'
 
 type HuertoEditorFormProps = { huertoId?: string }
 
-type FormData = { nombre: string; cultivo: string; municipio: string; localidad: string }
+type FormData = { propietario: string; nombre: string; cultivo: string; municipio: string; localidad: string }
 
-const emptyForm: FormData = { nombre: '', cultivo: 'aguacate', municipio: '', localidad: '' }
+const emptyForm: FormData = { propietario: '', nombre: '', cultivo: 'aguacate', municipio: '', localidad: '' }
 
 function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
   const navigate = useNavigate()
@@ -16,6 +17,7 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
   const [form, setForm] = useState<FormData>(emptyForm)
   const [polygon, setPolygon] = useState<PolygonCoordinates | null>(null)
   const [hectares, setHectares] = useState<number | null>(null)
+  const [coordinates, setCoordinates] = useState('')
   const [loading, setLoading] = useState(Boolean(huertoId))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -25,7 +27,7 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
     let active = true
     void getHuerto(huertoId).then((huerto) => {
       if (!active) return
-      setForm({ nombre: huerto.nombre, cultivo: huerto.cultivo, municipio: huerto.municipio, localidad: huerto.localidad })
+      setForm({ propietario: huerto.propietario, nombre: huerto.nombre, cultivo: huerto.cultivo, municipio: huerto.municipio, localidad: huerto.localidad })
       setPolygon(huerto.poligono?.coordinates ?? null)
       setHectares(huerto.superficie_ha)
     }).catch(() => { if (active) setError('No pudimos cargar esta huerta.') }).finally(() => { if (active) setLoading(false) })
@@ -39,6 +41,26 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
 
   function updateField(field: keyof FormData, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  async function locateOrTrace() {
+    const polygon = parsePolygonCoordinates(coordinates)
+    if (coordinates.trim() && polygon) {
+      setPolygon(polygon)
+      setError('')
+      return
+    }
+    if (coordinates.trim() && !polygon) {
+      setError('Las coordenadas no tienen un polígono válido. Usa JSON GeoJSON o pares [longitud, latitud].')
+      return
+    }
+    const place = [form.localidad, form.municipio].filter(Boolean).join(', ')
+    if (!place) {
+      setError('Escribe un municipio o localidad para buscar la ubicación.')
+      return
+    }
+    const found = await mapRef.current?.searchPlace(place)
+    setError(found ? '' : 'No encontramos ese municipio o localidad. Puedes ubicarte y dibujar el polígono manualmente.')
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -66,10 +88,13 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
   return <form className="orchard-form orchard-registration" onSubmit={save}>
     <section className="form-panel"><div className="form-panel-heading"><p className="eyebrow">Información general</p><h2>{huertoId ? 'Edita los datos del predio' : 'Identifica el predio'}</h2><p>Los datos y el polígono se guardarán en tu cuenta de Supabase.</p></div>
       <div className="form-fields">
-        <label>Nombre<input required value={form.nombre} onChange={(event) => updateField('nombre', event.target.value)} placeholder="Ej. Huerta La Esperanza" /></label>
+        <label>Propietario<input required value={form.propietario} onChange={(event) => updateField('propietario', event.target.value)} placeholder="Ej. Eduardo Ramírez López" /></label>
+        <label>Nombre de la huerta<input required value={form.nombre} onChange={(event) => updateField('nombre', event.target.value)} placeholder="Ej. Huerta La Esperanza" /></label>
         <label>Cultivo<select value={form.cultivo} onChange={(event) => updateField('cultivo', event.target.value)}><option value="aguacate">Aguacate</option><option value="berries">Berries</option><option value="otro">Otro</option></select></label>
         <label>Municipio<input required value={form.municipio} onChange={(event) => updateField('municipio', event.target.value)} onBlur={() => { void mapRef.current?.searchPlace(form.municipio) }} placeholder="Ej. Uruapan" /></label>
         <label>Localidad<input required value={form.localidad} onChange={(event) => updateField('localidad', event.target.value)} onBlur={() => { void mapRef.current?.searchPlace(`${form.localidad}, ${form.municipio}`) }} placeholder="Ej. Caltzontzin" /></label>
+        <label className="coordinates-field">Coordenadas del polígono (opcional)<textarea value={coordinates} onChange={(event) => setCoordinates(event.target.value)} placeholder="[[[-102.105,19.462],[-102.095,19.462],[-102.095,19.472],[-102.105,19.472]]]" rows={3} /><small>Pega coordenadas GeoJSON en formato [longitud, latitud]. Si las dejas vacías, busca el lugar y dibuja el terreno.</small></label>
+        <button type="button" className="button button-quiet location-button" onClick={() => { void locateOrTrace() }}>Buscar ubicación o trazar polígono</button>
       </div>
     </section>
     <section className="drawing-section form-panel"><div className="form-panel-heading"><p className="eyebrow">Delimita tu huerta</p><h2>Edita los puntos directamente en el mapa.</h2><p>Usa “Editar puntos” para arrastrar vértices, o “Dibujar terreno” para crear un nuevo polígono.</p></div>

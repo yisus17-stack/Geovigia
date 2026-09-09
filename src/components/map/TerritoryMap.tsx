@@ -111,7 +111,6 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
       for (const table of ['huertos']) {
         let query = supabase.from(table).select('*')
         if (orchardId) query = query.eq('id', orchardId)
-        else if (!allOrchards) query = query.eq('propietario_id', auth.user.id)
         const { data, error } = await query
         if (error) continue
         const parsed = (data ?? []).flatMap((row: Record<string, unknown>) => {

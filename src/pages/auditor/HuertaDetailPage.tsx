@@ -40,7 +40,7 @@ function HuertaDetailPage() {
   if (error || !huerto) return <AppLayout><p className="form-error" role="alert">{error || 'No encontramos esta huerta.'}</p><Link className="button" to="/auditor/huertas">Volver a huertas</Link></AppLayout>
 
   const pending = huerto.estado.toLowerCase() === 'pendiente'
-  return <AppLayout>
+  return <AppLayout breadcrumbCurrent={huerto.nombre}>
     <header className="page-header"><div><p className="eyebrow">{huerto.cultivo} · {huerto.municipio}</p><h1>{huerto.nombre}</h1><p>{huerto.localidad}, Michoacán · {huerto.superficie_ha?.toFixed(2) ?? '—'} ha</p></div><span className={pending ? 'badge badge-pending' : 'badge'}>{pending ? 'Auditoría pendiente' : huerto.estado}</span></header>
     <TerritoryMap orchardId={huerto.id} label={`Mapa de ${huerto.nombre}`} />
     <AgromichAnalysisPanel huertoId={huerto.id} />
