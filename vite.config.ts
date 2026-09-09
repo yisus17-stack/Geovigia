@@ -8,22 +8,29 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'icons/icon-192.svg', 'icons/icon-512.svg'],
       manifest: {
         name: 'Geovigia',
         short_name: 'Geovigia',
         description: 'Plataforma de auditoría territorial y evidencia satelital',
         theme_color: '#073d2d',
         background_color: '#f5f7f3',
+        lang: 'es',
         display: 'standalone',
         start_url: '/',
         scope: '/',
         icons: [
           {
-            src: '/favicon.svg',
-            sizes: '48x49',
+            src: '/icons/icon-192.svg',
+            sizes: '192x192',
             type: 'image/svg+xml',
             purpose: 'any',
+          },
+          {
+            src: '/icons/icon-512.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'any maskable',
           },
         ],
       },

@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import logoImage from '../assets/logo_blanco.png'
 import michoacanLogo from '../assets/mejor.png'
+import InstallPwaButton from '../components/InstallPwaButton'
 
 function LandingPage() {
   return <main className="landing-page gov-landing">
     <header className="gov-header">
+      <InstallPwaButton />
       <Link className="landing-institutional-logos" to="/" aria-label="GeoVigía, inicio"><img src={michoacanLogo} alt="Michoacán" /><span aria-hidden="true" /><img src={logoImage} alt="GeoVigía" /></Link>
       <nav aria-label="Navegación principal"><a href="#solucion">Plataforma</a><a href="#impacto">Cómo funciona</a><Link to="/login">Iniciar sesión</Link></nav>
     </header>
