@@ -3,12 +3,7 @@ import { supabase } from './supabase'
 function throwDatabaseError(error: { message?: string; details?: string; hint?: string; code?: string }): never {
   const parts = [error.message, error.details, error.hint].filter((part): part is string => Boolean(part && part.trim()))
   const description = parts.join(' ')
-  console.error('[GeoVigía] Error de Supabase', {
-    code: error.code,
-    message: error.message,
-    details: error.details,
-    hint: error.hint,
-  })
+  console.error('[GeoVigía] Error de Supabase', { code: error.code, message: error.message, details: error.details, hint: error.hint })
   throw new Error(error.code ? `[${error.code}] ${description}` : description || 'Supabase rechazó la operación.')
 }
 
@@ -31,15 +26,20 @@ export type HuertoInput = Pick<Huerto, 'propietario' | 'nombre' | 'cultivo' | 'm
 
 export async function getHuertos() {
   const { data: auth, error: authError } = await supabase.auth.getUser()
-  if (authError || !auth.user) throw new Error('Tu sesion no esta activa.')
+  if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').select('*').order('created_at', { ascending: false })
   if (error) throwDatabaseError(error)
   return (data ?? []) as Huerto[]
 }
 
+export function formatHuertoDate(huerto: Huerto) {
+  const parsed = new Date(huerto.created_at)
+  return Number.isNaN(parsed.valueOf()) ? 'Registro activo' : parsed.toLocaleDateString('es-MX')
+}
+
 export async function getHuerto(id: string) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
-  if (authError || !auth.user) throw new Error('Tu sesion no esta activa.')
+  if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').select('*').eq('id', id).single()
   if (error) throwDatabaseError(error)
   return data as Huerto
@@ -47,7 +47,7 @@ export async function getHuerto(id: string) {
 
 export async function createHuerto(input: HuertoInput) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
-  if (authError || !auth.user) throw new Error('Tu sesion no esta activa.')
+  if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').insert({ ...input, estado: 'activo' }).select().single()
   if (error) throwDatabaseError(error)
   return data as Huerto
@@ -55,7 +55,7 @@ export async function createHuerto(input: HuertoInput) {
 
 export async function updateHuerto(id: string, input: HuertoInput) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
-  if (authError || !auth.user) throw new Error('Tu sesion no esta activa.')
+  if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').update(input).eq('id', id).select().single()
   if (error) throwDatabaseError(error)
   return data as Huerto

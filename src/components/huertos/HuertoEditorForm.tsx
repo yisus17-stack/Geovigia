@@ -27,7 +27,7 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
     let active = true
     void getHuerto(huertoId).then((huerto) => {
       if (!active) return
-      setForm({ propietario: huerto.propietario, nombre: huerto.nombre, cultivo: huerto.cultivo, municipio: huerto.municipio, localidad: huerto.localidad })
+      setForm({ propietario: huerto.propietario ?? '', nombre: huerto.nombre, cultivo: huerto.cultivo, municipio: huerto.municipio, localidad: huerto.localidad ?? '' })
       setPolygon(huerto.poligono?.coordinates ?? null)
       setHectares(huerto.superficie_ha)
     }).catch(() => { if (active) setError('No pudimos cargar esta huerta.') }).finally(() => { if (active) setLoading(false) })
@@ -86,7 +86,7 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
   if (loading) return <p className="loading-state">Cargando huerta...</p>
 
   return <form className="orchard-form orchard-registration" onSubmit={save}>
-    <section className="form-panel"><div className="form-panel-heading"><p className="eyebrow">Información general</p><h2>{huertoId ? 'Edita los datos del predio' : 'Identifica el predio'}</h2><p>Los datos y el polígono se guardarán en tu cuenta de Supabase.</p></div>
+    <section className="form-panel"><div className="form-panel-heading"><p className="eyebrow">Información general</p><h2>{huertoId ? 'Edita los datos del predio' : 'Identifica el predio'}</h2><p>Completa únicamente la información de la huerta y su polígono.</p></div>
       <div className="form-fields">
         <label>Propietario<input required value={form.propietario} onChange={(event) => updateField('propietario', event.target.value)} placeholder="Ej. Eduardo Ramírez López" /></label>
         <label>Nombre de la huerta<input required value={form.nombre} onChange={(event) => updateField('nombre', event.target.value)} placeholder="Ej. Huerta La Esperanza" /></label>

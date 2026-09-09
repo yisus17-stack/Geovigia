@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
 import AgromichAnalysisPanel from '../../components/huertos/AgromichAnalysisPanel'
 import TerritoryMap from '../../components/map/TerritoryMap'
+import logoImage from '../../assets/logo.png'
 import { confirmAction, showError, showSuccess } from '../../lib/alerts'
 import { deleteHuerto, getHuerto, type Huerto } from '../../lib/huertos'
 
@@ -41,10 +42,9 @@ function HuertaDetailPage() {
 
   const pending = huerto.estado.toLowerCase() === 'pendiente'
   return <AppLayout breadcrumbCurrent={huerto.nombre}>
-    <header className="page-header"><div><p className="eyebrow">{huerto.cultivo} · {huerto.municipio}</p><h1>{huerto.nombre}</h1><p>{huerto.localidad}, Michoacán · {huerto.superficie_ha?.toFixed(2) ?? '—'} ha</p></div><span className={pending ? 'badge badge-pending' : 'badge'}>{pending ? 'Auditoría pendiente' : huerto.estado}</span></header>
-    <TerritoryMap orchardId={huerto.id} label={`Mapa de ${huerto.nombre}`} />
+    <header className="page-header orchard-detail-header"><div><p className="eyebrow">{huerto.cultivo} · {huerto.municipio}</p><h1>{huerto.nombre}</h1><p>{huerto.localidad}, Michoacán · {huerto.superficie_ha?.toFixed(2) ?? '—'} ha</p></div><aside aria-hidden="true"><img src={logoImage} alt="" /></aside></header>
+    <section className="orchard-overview"><TerritoryMap orchardId={huerto.id} label={`Mapa de ${huerto.nombre}`} /><section className="orchard-info-section"><p className="eyebrow">Datos del predio</p><h2>Información registrada</h2><dl className="evidence-list"><div><dt>Cultivo</dt><dd>{huerto.cultivo}</dd></div><div><dt>Municipio</dt><dd>{huerto.municipio}</dd></div><div><dt>Localidad</dt><dd>{huerto.localidad ?? 'Sin especificar'}</dd></div><div><dt>Superficie</dt><dd>{huerto.superficie_ha === null ? 'Sin calcular' : `${huerto.superficie_ha.toFixed(2)} ha`}</dd></div><div><dt>Polígono</dt><dd>{huerto.poligono ? 'Delimitado' : 'Pendiente'}</dd></div><div><dt>Estado</dt><dd>{pending ? 'Auditoría pendiente' : huerto.estado}</dd></div></dl></section></section>
     <AgromichAnalysisPanel huertoId={huerto.id} />
-    <section className="two-column"><div><p className="eyebrow">Datos del predio</p><h2>Información registrada</h2><dl className="evidence-list"><div><dt>Cultivo</dt><dd>{huerto.cultivo}</dd></div><div><dt>Polígono</dt><dd>{huerto.poligono ? 'Delimitado' : 'Pendiente'}</dd></div><div><dt>Estado</dt><dd>{pending ? 'Auditoría pendiente' : huerto.estado}</dd></div></dl></div><div><p className="eyebrow">Documentos</p><h2>Expediente documental</h2><button className="button button-quiet" type="button">Subir documento</button></div></section>
     <section className="audit-request-panel"><div><p className="eyebrow">Auditoría</p><h2>Generar informe técnico</h2><p>Revisa la evidencia territorial y continúa al generador de Vigía para crear y descargar el documento.</p></div><div><Link className="button" to={`/auditor/auditorias/${huerto.id}`}>Abrir auditoría →</Link><small className="audit-pdf-note">El informe se genera con los datos actuales de esta huerta.</small></div></section>
     <div className="detail-actions"><Link className="button button-secondary" to={`/auditor/huertas/${huerto.id}/editar`}>Editar huerta</Link><button className="text-button danger-button" type="button" onClick={() => { void removeHuerta() }} disabled={deleting}>{deleting ? 'Eliminando…' : 'Eliminar huerta'}</button></div>
   </AppLayout>

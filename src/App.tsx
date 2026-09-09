@@ -11,6 +11,7 @@ import HuertaDetailPage from './pages/auditor/HuertaDetailPage'
 import EditHuertaPage from './pages/auditor/EditHuertaPage'
 import HuertasPage from './pages/auditor/HuertasPage'
 import NewHuertaPage from './pages/auditor/NewHuertaPage'
+import SettingsPage from './pages/auditor/SettingsPage'
 import LoginPage from './pages/LoginPage'
 
 const auditor = (page: ReactNode) => <RequireAuth>{page}</RequireAuth>
@@ -27,6 +28,7 @@ function App() {
       <Route path="/auditor/huertas/:id" element={auditor(<HuertaDetailPage />)} />
       <Route path="/auditor/huertas/:id/editar" element={auditor(<EditHuertaPage />)} />
       <Route path="/auditor/mapas" element={auditor(<MapsPage />)} />
+      <Route path="/auditor/configuracion" element={auditor(<SettingsPage />)} />
       <Route path="/auditor/auditorias/:id" element={auditor(<RevisionPage />)} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

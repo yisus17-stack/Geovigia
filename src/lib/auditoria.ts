@@ -3,7 +3,7 @@ import type { Huerto } from './huertos'
 
 // La visibilidad depende de las políticas RLS: un auditor ve los huertos que Supabase le autorice.
 export async function getHuertosAuditoria() {
-  const { data, error } = await supabase.from('huertos').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('huertos').select('*')
   if (error) throw error
   return (data ?? []) as Huerto[]
 }

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Line } from 'react-chartjs-2'
+import { CategoryScale, Chart as ChartJS, Filler, Legend, LineElement, LinearScale, PointElement, Tooltip, type ChartOptions } from 'chart.js'
 import { getHuerto, type Huerto } from '../../lib/huertos'
 import { supabase } from '../../lib/supabase'
 import { closeLoading, showError, showLoading, showSuccess } from '../../lib/alerts'
@@ -6,13 +8,35 @@ import { saveAgromichAnalysis, type PersistedImage } from '../../lib/analisis'
 
 type NdviPoint = { anio: number; ndvi_promedio: number }
 type ApiImage = { anio: number; thumbnail_url?: string; image_url?: string; url?: string; fuente?: string; fecha_escena?: string | null; nubosidad_porcentaje?: number | null; tile_url_template?: string; bounds?: number[]; ndvi_promedio?: number }
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
 type ApiResult = {
   expediente?: {
-    validacion_cultivo_e_infraestructura?: { cultivo_inferido?: string; observacion?: string }
+    validacion_cultivo_e_infraestructura?: { cultivo_inferido?: string; observacion?: string; incongruencia_detectada?: boolean }
     auditoria_ambiental_y_forestal?: { estatus_legal?: string; dictamen_automatizado?: string; registros_deforestacion_hansen?: number[] }
     series_historicas?: { evolucion_ndvi_anual?: NdviPoint[] }
   }
   imagenes?: ApiImage[]
+}
+
+const ndviChartOptions: ChartOptions<'line'> = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 650 },
+  interaction: { intersect: false, mode: 'index' },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#073d2d',
+      cornerRadius: 8,
+      displayColors: false,
+      padding: 10,
+      callbacks: { label: (context) => `NDVI: ${Number(context.parsed.y).toFixed(3)}` },
+    },
+  },
+  scales: {
+    x: { border: { display: false }, grid: { display: false }, ticks: { color: '#66706b', font: { size: 11, weight: 600 } } },
+    y: { min: 0, max: 1, border: { display: false }, grid: { color: 'rgba(32, 59, 49, .10)' }, ticks: { color: '#66706b', font: { size: 11 }, stepSize: .2, callback: (value) => Number(value).toFixed(1) } },
+  },
 }
 
 const apiBase = import.meta.env.DEV ? '/agromich-api' : import.meta.env.VITE_AGROMICH_API_URL
@@ -45,9 +69,29 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
     return () => { active = false }
   }, [huertoId])
 
-  const ndvi = useMemo(() => result?.expediente?.series_historicas?.evolucion_ndvi_anual ?? [], [result])
-  const images = result?.imagenes ?? []
-  const maxNdvi = useMemo(() => Math.max(...ndvi.map((point) => point.ndvi_promedio), .01), [ndvi])
+  const images = useMemo(() => [...(result?.imagenes ?? [])].sort((first, second) => first.anio - second.anio), [result])
+  const ndvi = useMemo(() => {
+    const series = result?.expediente?.series_historicas?.evolucion_ndvi_anual ?? []
+    if (series.length > 0) return series
+    return images.flatMap((image) => typeof image.ndvi_promedio === 'number' ? [{ anio: image.anio, ndvi_promedio: image.ndvi_promedio }] : [])
+  }, [images, result])
+  const ndviChartData = useMemo(() => ({
+    labels: ndvi.map((point) => String(point.anio)),
+    datasets: [{
+      data: ndvi.map((point) => point.ndvi_promedio),
+      borderColor: '#0b5e43',
+      backgroundColor: 'rgba(11, 94, 67, .12)',
+      borderWidth: 2.5,
+      fill: true,
+      pointBackgroundColor: '#fff',
+      pointBorderColor: '#0b5e43',
+      pointBorderWidth: 2.5,
+      pointHoverBackgroundColor: '#0b5e43',
+      pointHoverRadius: 5,
+      pointRadius: 3.5,
+      tension: .32,
+    }],
+  }), [ndvi])
 
   async function runAnalysis() {
     if (!huerto?.poligono) { setError('Esta huerta necesita un polígono antes de generar el expediente.'); void showError('Falta el polígono', 'Delimita la huerta antes de generar el expediente.'); return }
@@ -58,7 +102,8 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
     try {
       const { data } = await supabase.auth.getUser()
       const responsableRegistro = huerto.propietario || String(data.user?.user_metadata?.full_name ?? data.user?.email ?? 'Responsable del registro')
-      const years = [2018, 2020, 2022, 2024, new Date().getFullYear()]
+      const currentYear = new Date().getFullYear()
+      const years = Array.from({ length: currentYear - 2018 + 1 }, (_, index) => 2018 + index)
       const [analysisResponse, imagesResponse] = await Promise.all([
         fetch(`${apiBase}/api/v1/expediente/generar-completo`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre_huerto: huerto.nombre, productor: responsableRegistro, municipio: huerto.municipio, cultivo: huerto.cultivo, geometry: huerto.poligono, anio_inicio: 2018, anio_fin: new Date().getFullYear() }) }),
         fetch(`${apiBase}/api/v1/expediente/imagenes-historicas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ geometry: huerto.poligono, anios: years, cultivo: huerto.cultivo, visualizacion: 'rgb', mes_inicio: 1, mes_fin: 4 }) }),
@@ -97,7 +142,7 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
   const validation = result?.expediente?.validacion_cultivo_e_infraestructura
   const audit = result?.expediente?.auditoria_ambiental_y_forestal
 
-  return <section className="agromich-panel"><div><p className="eyebrow">Evidencia histórica</p><h2>Expediente satelital</h2><p>Genera el análisis de AgroMich, guarda el expediente y consulta las imágenes Sentinel/Landsat de esta huerta.</p></div>{loading ? <p>Cargando datos del predio...</p> : <button className="button" onClick={() => { void runAnalysis() }} disabled={running || !huerto?.poligono}>{running ? 'Analizando y guardando...' : 'Analizar y guardar expediente →'}</button>}{error && <p className="form-error" role="alert">{error}</p>}{result && <div className="agromich-result"><div className="analysis-summary"><div><span>Dictamen</span><b>{audit?.estatus_legal ?? 'Sin dictamen'}</b><p>{audit?.dictamen_automatizado}</p></div><div><span>Cultivo inferido</span><b>{validation?.cultivo_inferido ?? 'Sin dato'}</b><p>{validation?.observacion}</p></div></div>{images.length > 0 && <div className="satellite-timeline"><p className="eyebrow">Imágenes históricas</p><div>{images.map((image) => { const url = image.thumbnail_url ?? image.image_url ?? image.url; return <figure key={image.anio}>{url ? <img src={url} alt={`Imagen satelital ${image.anio}`} /> : <span>Imagen no disponible</span>}<figcaption>{image.anio} · {image.fuente ?? 'Satelital'}</figcaption></figure> })}</div></div>}{ndvi.length > 0 && <div className="ndvi-timeline"><div><p className="eyebrow">Línea de tiempo NDVI</p><h3>Evolución de la vegetación</h3></div><div className="ndvi-bars">{ndvi.map((point) => <div key={point.anio} title={`${point.anio}: ${point.ndvi_promedio.toFixed(3)}`}><i style={{ height: `${Math.max(10, point.ndvi_promedio / maxNdvi * 100)}%` }} /><span>{point.anio}</span></div>)}</div></div>}{audit?.registros_deforestacion_hansen?.length ? <p className="analysis-alert">Años con registros Hansen: {audit.registros_deforestacion_hansen.join(', ')}</p> : null}</div>}</section>
+  return <section className="agromich-panel"><div><p className="eyebrow">Evidencia histórica</p><h2>Expediente satelital</h2><p>Genera el dictamen e imágenes Sentinel/Landsat de esta huerta.</p></div>{loading ? <p>Cargando datos del predio...</p> : <button className="button" onClick={() => { void runAnalysis() }} disabled={running || !huerto?.poligono}>{running ? 'Generando evidencia histórica...' : 'Generar expediente e imágenes →'}</button>}{error && <p className="form-error" role="alert">{error}</p>}{result && <div className="agromich-result">{validation?.incongruencia_detectada === false && <aside className="analysis-congruence-alert" role="alert"><span aria-hidden="true">!</span><div><b>Validación de cultivo pendiente</b><p>AgroMich no confirmó la congruencia entre el cultivo declarado y la evidencia espacial. Revisa el predio antes de continuar con la auditoría.</p></div></aside>}<div className="analysis-summary"><div><span>Dictamen</span><b>{audit?.estatus_legal ?? 'Sin dictamen'}</b><p>{audit?.dictamen_automatizado}</p></div><div><span>Cultivo inferido</span><b>{validation?.cultivo_inferido ?? 'Sin dato'}</b><p>{validation?.observacion}</p></div><div><span>Congruencia</span><b>{validation?.incongruencia_detectada === false ? 'Por verificar' : 'Sin alertas'}</b><p>{validation?.incongruencia_detectada === false ? 'La validación requiere revisión humana.' : 'La validación automática no reportó alertas.'}</p></div></div>{images.length > 0 && <div className="satellite-timeline"><p className="eyebrow">Imágenes históricas</p><div>{images.map((image) => { const url = image.thumbnail_url ?? image.image_url ?? image.url; return <figure key={image.anio}>{url ? <img src={url} alt={`Imagen satelital ${image.anio}`} /> : <span>Imagen no disponible</span>}<figcaption>{image.anio} · {image.fuente ?? 'Satelital'}</figcaption></figure> })}</div></div>}{ndvi.length > 0 && <div className="ndvi-timeline"><div><p className="eyebrow">Serie histórica NDVI</p><h3>Evolución de la vegetación</h3><p>Índice anual de vegetación obtenido del expediente de AgroMich.</p></div><div className="ndvi-line-chart"><Line aria-label="Gráfica de línea de evolución NDVI" data={ndviChartData} options={ndviChartOptions} /></div></div>}{audit?.registros_deforestacion_hansen?.length ? <p className="analysis-alert">Años con registros Hansen: {audit.registros_deforestacion_hansen.join(', ')}</p> : null}</div>}</section>
 }
 
 export default AgromichAnalysisPanel

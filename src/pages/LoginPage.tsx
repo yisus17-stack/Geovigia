@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import logoImage from '../assets/logo_blanco.png'
+import michoacanLogo from '../assets/mejor.png'
+import geoVigiaLogo from '../assets/logo_blanco.png'
 import { supabase } from '../lib/supabase'
 
 function LoginPage() {
@@ -28,7 +29,7 @@ function LoginPage() {
   }
 
   return <main className="login-page">
-    <section className="login-visual"><Link className="brand" to="/" aria-label="GeoVigía, inicio"><img src={logoImage} alt="GeoVigía" /></Link><p>Auditoría territorial con evidencia clara y trazable.</p></section>
+    <section className="login-visual"><Link className="login-brand-logos" to="/" aria-label="GeoVigía, inicio"><img src={michoacanLogo} alt="Michoacán" /><span aria-hidden="true" /><img src={geoVigiaLogo} alt="GeoVigía" /></Link><p>Auditoría territorial con evidencia clara y trazable.</p></section>
     <section className="login-panel"><Link className="back-link" to="/">← Volver al inicio</Link><p className="eyebrow">Acceso de Auditor</p><h1>Iniciar sesión</h1><p className="login-intro">Ingresa con las credenciales autorizadas para administrar huertas y auditorías.</p><form className="login-form" onSubmit={(event) => { void submit(event) }}><label>Correo electrónico<input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label><label>Contraseña<input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button" disabled={loading}>{loading ? 'Ingresando…' : 'Entrar como Auditor'}</button></form></section>
   </main>
 }
