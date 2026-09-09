@@ -10,7 +10,7 @@ import { formatCropName, formatHuertoDate, type Huerto } from '../../lib/huertos
 import { getExpedientResponse, getLatestSavedExpedient, saveAgromichAnalysis, type PersistedImage } from '../../lib/analisis'
 import { closeLoading, showError, showLoading, showSuccess, updateLoading } from '../../lib/alerts'
 
-const agromichApi = import.meta.env.DEV ? '/agromich-api' : import.meta.env.VITE_AGROMICH_API_URL
+const agromichApi = '/agromich-api'
 
 function parseImages(payload: unknown): PersistedImage[] {
   if (!payload || typeof payload !== 'object') return []
@@ -105,11 +105,6 @@ function RevisionPage() {
       setAgentError('Esta huerta necesita un polígono antes de generar el expediente.')
       return
     }
-    if (!agromichApi) {
-      setAgentError('Falta configurar VITE_AGROMICH_API_URL.')
-      return
-    }
-
     setAgentRunning(true)
     setAgentError('')
     setDocumentResult(null)

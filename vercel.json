@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/agromich-api/:path*", "destination": "https://agromich.onrender.com/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

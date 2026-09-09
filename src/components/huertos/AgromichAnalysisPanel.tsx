@@ -94,7 +94,7 @@ const ndviChartOptions: ChartOptions<'line'> = {
   },
 }
 
-const apiBase = import.meta.env.DEV ? '/agromich-api' : import.meta.env.VITE_AGROMICH_API_URL
+const apiBase = '/agromich-api'
 
 function parseImages(payload: unknown): ApiImage[] {
   if (!payload || typeof payload !== 'object') return []
@@ -157,7 +157,6 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
 
   async function runAnalysis() {
     if (!huerto?.poligono) { setError('Esta huerta necesita un polígono antes de generar el expediente.'); void showError('Falta el polígono', 'Delimita la huerta antes de generar el expediente.'); return }
-    if (!apiBase) { setError('Configura VITE_AGROMICH_API_URL para producción.'); void showError('API no configurada', 'Falta configurar la conexión con AgroMich.'); return }
     setRunning(true)
     setError('')
     showLoading('Generando expediente...', 'Consultamos el análisis ambiental y las imágenes históricas.')

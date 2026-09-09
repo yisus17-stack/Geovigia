@@ -41,7 +41,7 @@ export type MapOrchard = {
 }
 type HistoricalImage = { year: number; thumbnailUrl?: string; tileUrlTemplate?: string; bounds?: [number, number, number, number] }
 
-const agromichApi = import.meta.env.DEV ? '/agromich-api' : import.meta.env.VITE_AGROMICH_API_URL
+const agromichApi = '/agromich-api'
 
 function parseHistoricalImages(payload: unknown): HistoricalImage[] {
   if (!payload || typeof payload !== 'object') return []
