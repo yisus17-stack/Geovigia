@@ -108,6 +108,46 @@ export async function saveAnalysisImages(analysisId: string, images: PersistedIm
 
 }
 
+export type AnalysisSummary = {
+  cultivo_inferido: string | null
+  incongruencia_detectada: boolean | null
+  estatus_legal: string | null
+  dictamen_automatizado: string | null
+  registros_deforestacion_hansen: number[] | null
+}
+
+export async function getLatestAgromichAnalysis(huertoId: string): Promise<{ response: unknown; images: PersistedImage[]; summary: AnalysisSummary } | null> {
+  const { data: analysis, error: analysisError } = await supabase
+    .from('analisis')
+    .select('id, respuesta_agromich, cultivo_inferido, incongruencia_detectada, estatus_legal, dictamen_automatizado, registros_deforestacion_hansen')
+    .eq('huerto_id', huertoId)
+    .order('completado_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (analysisError) throw analysisError
+  if (!analysis) return null
+
+  const { data: images, error: imagesError } = await supabase
+    .from('imagenes_analisis')
+    .select('anio, fuente, fecha_escena, nubosidad_porcentaje, thumbnail_url, tile_url_template, bounds, ndvi_promedio, respuesta_imagen')
+    .eq('analisis_id', analysis.id)
+    .order('anio', { ascending: true })
+
+  if (imagesError) throw imagesError
+  return {
+    response: analysis.respuesta_agromich,
+    images: (images ?? []) as PersistedImage[],
+    summary: {
+      cultivo_inferido: analysis.cultivo_inferido,
+      incongruencia_detectada: analysis.incongruencia_detectada,
+      estatus_legal: analysis.estatus_legal,
+      dictamen_automatizado: analysis.dictamen_automatizado,
+      registros_deforestacion_hansen: analysis.registros_deforestacion_hansen,
+    },
+  }
+}
+
 export async function getExpedientResponse(analysisId: string) {
   const { data, error } = await supabase
     .from('expedientes')
@@ -116,4 +156,27 @@ export async function getExpedientResponse(analysisId: string) {
     .single()
   if (error) throw error
   return data.respuesta_completa
+}
+
+export async function getLatestSavedExpedient(huertoId: string): Promise<{ analysisId: string; requiresRefresh: boolean } | null> {
+  const { data: analysis, error: analysisError } = await supabase
+    .from('analisis')
+    .select('id, estado')
+    .eq('huerto_id', huertoId)
+    .order('completado_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (analysisError) throw analysisError
+  if (!analysis) return null
+
+  const { data: expedient, error: expedientError } = await supabase
+    .from('expedientes')
+    .select('analisis_id')
+    .eq('analisis_id', analysis.id)
+    .maybeSingle()
+
+  if (expedientError) throw expedientError
+  if (!expedient) return null
+  return { analysisId: analysis.id, requiresRefresh: analysis.estado !== 'completado' }
 }

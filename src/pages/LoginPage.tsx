@@ -12,7 +12,7 @@ function LoginPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => { if (data.session) navigate('/auditor', { replace: true }) })
+    void supabase.auth.getSession().then(({ data }) => { if (data.session) navigate('/auditor/huertas', { replace: true }) })
   }, [navigate])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -25,7 +25,7 @@ function LoginPage() {
       setLoading(false)
       return
     }
-    navigate('/auditor', { replace: true })
+    navigate('/auditor/huertas', { replace: true })
   }
 
   return <main className="login-page">

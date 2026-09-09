@@ -54,10 +54,31 @@ export async function createHuerto(input: HuertoInput) {
 }
 
 export async function updateHuerto(id: string, input: HuertoInput) {
+  const { data: current, error: currentError } = await supabase
+    .from('huertos')
+    .select('propietario, nombre, cultivo, municipio, localidad')
+    .eq('id', id)
+    .single()
+  if (currentError) throwDatabaseError(currentError)
+
+  // La geometría puede ajustarse sin invalidar el expediente satelital.
+  const hasRelevantChanges = ['propietario', 'nombre', 'cultivo', 'municipio', 'localidad'].some((field) => {
+    const previous = String(current[field as keyof typeof current] ?? '').trim()
+    const next = String(input[field as keyof Pick<HuertoInput, 'propietario' | 'nombre' | 'cultivo' | 'municipio' | 'localidad'>] ?? '').trim()
+    return previous !== next
+  })
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').update(input).eq('id', id).select().single()
   if (error) throwDatabaseError(error)
+  if (hasRelevantChanges) {
+    const { error: staleError } = await supabase
+      .from('analisis')
+      .update({ estado: 'requiere_actualizacion' })
+      .eq('huerto_id', id)
+      .eq('estado', 'completado')
+    if (staleError) throwDatabaseError(staleError)
+  }
   return data as Huerto
 }
 

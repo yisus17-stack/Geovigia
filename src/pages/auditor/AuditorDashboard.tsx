@@ -5,7 +5,7 @@ import { getHuertosAuditoria } from '../../lib/auditoria'
 import { formatHuertoDate, type Huerto } from '../../lib/huertos'
 
 function HuertaRow({ huerto }: { huerto: Huerto }) {
-  return <div className="table-row" key={huerto.id}><b>{huerto.nombre}<small>{formatHuertoDate(huerto)}</small></b><span>{huerto.municipio}<small>{huerto.localidad}</small></span><span>{huerto.cultivo}</span><span>{huerto.superficie_ha?.toFixed(2) ?? '—'} ha</span><span>{huerto.estado}</span><Link to={`/auditor/huertas/${huerto.id}`}>Ver huerta →</Link></div>
+  return <div className="table-row" key={huerto.id}><b>{huerto.nombre}<small>{formatHuertoDate(huerto)}</small></b><span>{huerto.municipio}<small>{huerto.localidad}</small></span><span>{huerto.cultivo}</span><span>{huerto.superficie_ha?.toFixed(2) ?? '—'} ha</span><span className={`status-chip ${huerto.estado.toLowerCase() === 'activo' ? 'is-active' : 'is-pending'}`}>{huerto.estado}</span><Link to={`/auditor/huertas/${huerto.id}`}>Ver huerta →</Link></div>
 }
 
 function AuditorDashboard() {
@@ -29,13 +29,13 @@ function AuditorDashboard() {
   }, [huertos])
 
   return <AppLayout>
-    <header className="page-header"><div><p className="eyebrow">Huertas</p><h1>Seguimiento territorial</h1><p>Registra una huerta, delimítala y después consulta su evidencia o genera su auditoría.</p></div><Link className="button" to="/auditor/huertas/nuevo">+ Registrar huerta</Link></header>
+    <header className="page-header"><div><p className="eyebrow">Huertas</p><h1>Seguimiento territorial</h1><p>Registra una huerta, delimítala y después consulta su evidencia o genera su auditoría.</p></div></header>
     {error && <p className="form-error" role="alert">{error}</p>}
     <section className="stat-grid"><div><b>{loading ? '—' : huertos.length}</b><span>Huertas registradas</span></div><div><b>{loading ? '—' : summary.mapped}</b><span>Polígonos delimitados</span></div><div><b>{loading ? '—' : `${summary.area.toFixed(2)} ha`}</b><span>Superficie registrada</span></div><div><b>{loading ? '—' : summary.pending.length}</b><span>Auditorías pendientes</span></div></section>
     <section className="section-header"><div><p className="eyebrow">Primer paso</p><h2>Huertas registradas</h2><p>Abre una huerta para editarla, ver su mapa y consultar la evidencia satelital.</p></div><Link to="/auditor/huertas">Ver todas →</Link></section>
     {loading && <div className="data-table table-loading" role="status"><span aria-hidden="true" /><p>Cargando registros desde Supabase…</p></div>}
     {!loading && !error && <div className="data-table"><div className="table-head"><span>Huerta</span><span>Municipio</span><span>Cultivo</span><span>Superficie</span><span>Estado</span><span /></div>{huertos.slice(0, 5).map((huerto) => <HuertaRow key={huerto.id} huerto={huerto} />)}{huertos.length === 0 && <p className="empty-state">Aún no hay huertas registradas. Registra la primera para iniciar su seguimiento.</p>}</div>}
-    {!loading && !error && summary.pending.length > 0 && <><section className="section-header"><div><p className="eyebrow">Segundo paso</p><h2>Auditorías pendientes</h2><p>Estas huertas ya requieren continuar con la revisión y el informe técnico.</p></div><Link to="/auditor/huertas">Administrar huertas →</Link></section><div className="data-table"><div className="table-head"><span>Huerta</span><span>Municipio</span><span>Cultivo</span><span>Superficie</span><span>Estado</span><span /></div>{summary.pending.map((huerto) => <div className="table-row" key={huerto.id}><b>{huerto.nombre}<small>{formatHuertoDate(huerto)}</small></b><span>{huerto.municipio}<small>{huerto.localidad}</small></span><span>{huerto.cultivo}</span><span>{huerto.superficie_ha?.toFixed(2) ?? '—'} ha</span><span>{huerto.estado}</span><Link to={`/auditor/auditorias/${huerto.id}`}>Abrir auditoría →</Link></div>)}</div></>}
+    {!loading && !error && summary.pending.length > 0 && <><section className="section-header"><div><p className="eyebrow">Segundo paso</p><h2>Auditorías pendientes</h2><p>Estas huertas ya requieren continuar con la revisión y el informe técnico.</p></div><Link to="/auditor/huertas">Administrar huertas →</Link></section><div className="data-table"><div className="table-head"><span>Huerta</span><span>Municipio</span><span>Cultivo</span><span>Superficie</span><span>Estado</span><span /></div>{summary.pending.map((huerto) => <div className="table-row" key={huerto.id}><b>{huerto.nombre}<small>{formatHuertoDate(huerto)}</small></b><span>{huerto.municipio}<small>{huerto.localidad}</small></span><span>{huerto.cultivo}</span><span>{huerto.superficie_ha?.toFixed(2) ?? '—'} ha</span><span className={`status-chip ${huerto.estado.toLowerCase() === 'activo' ? 'is-active' : 'is-pending'}`}>{huerto.estado}</span><Link to={`/auditor/auditorias/${huerto.id}`}>Abrir auditoría →</Link></div>)}</div></>}
   </AppLayout>
 }
 

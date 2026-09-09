@@ -4,7 +4,7 @@ import { CategoryScale, Chart as ChartJS, Filler, Legend, LineElement, LinearSca
 import { getHuerto, type Huerto } from '../../lib/huertos'
 import { supabase } from '../../lib/supabase'
 import { closeLoading, showError, showLoading, showSuccess } from '../../lib/alerts'
-import { saveAgromichAnalysis, type PersistedImage } from '../../lib/analisis'
+import { getLatestAgromichAnalysis, saveAgromichAnalysis, type AnalysisSummary, type PersistedImage } from '../../lib/analisis'
 
 type NdviPoint = { anio: number; ndvi_promedio: number }
 type ApiImage = { anio: number; thumbnail_url?: string; image_url?: string; url?: string; fuente?: string; fecha_escena?: string | null; nubosidad_porcentaje?: number | null; tile_url_template?: string; bounds?: number[]; ndvi_promedio?: number }
@@ -16,6 +16,57 @@ type ApiResult = {
     series_historicas?: { evolucion_ndvi_anual?: NdviPoint[] }
   }
   imagenes?: ApiImage[]
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+}
+
+function findValue(value: unknown, keys: string[]): unknown {
+  const record = asRecord(value)
+  if (!record) return undefined
+  for (const key of keys) if (record[key] !== undefined && record[key] !== null) return record[key]
+  for (const child of Object.values(record)) {
+    const found = findValue(child, keys)
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value : undefined
+}
+
+function booleanValue(value: unknown) {
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function normalizeSavedResult(response: unknown, summary: AnalysisSummary, images: ApiImage[]): ApiResult {
+  const payload = asRecord(response) ?? {}
+  const nestedPayload = asRecord(payload.data) ?? asRecord(payload.resultado) ?? asRecord(payload.result) ?? payload
+  const expediente = asRecord(nestedPayload.expediente) ?? nestedPayload
+  const validation = asRecord(expediente.validacion_cultivo_e_infraestructura) ?? expediente
+  const audit = asRecord(expediente.auditoria_ambiental_y_forestal) ?? expediente
+  const series = asRecord(expediente.series_historicas) ?? expediente
+  const ndviPoints = findValue(series, ['evolucion_ndvi_anual', 'serie_ndvi', 'ndvi_anual'])
+  const hansen = findValue(audit, ['registros_deforestacion_hansen', 'anios_deforestacion_hansen'])
+
+  return {
+    expediente: {
+      validacion_cultivo_e_infraestructura: {
+        cultivo_inferido: stringValue(findValue(validation, ['cultivo_inferido', 'cultivo_detectado'])) ?? summary.cultivo_inferido ?? undefined,
+        observacion: stringValue(findValue(validation, ['observacion', 'observaciones', 'detalle'])),
+        incongruencia_detectada: booleanValue(findValue(validation, ['incongruencia_detectada', 'incongruencia'])) ?? summary.incongruencia_detectada ?? undefined,
+      },
+      auditoria_ambiental_y_forestal: {
+        estatus_legal: stringValue(findValue(audit, ['estatus_legal', 'dictamen_legal', 'estatus'])) ?? summary.estatus_legal ?? undefined,
+        dictamen_automatizado: stringValue(findValue(audit, ['dictamen_automatizado', 'dictamen', 'recomendacion'])) ?? summary.dictamen_automatizado ?? undefined,
+        registros_deforestacion_hansen: (Array.isArray(hansen) ? hansen : summary.registros_deforestacion_hansen ?? undefined) as number[] | undefined,
+      },
+      series_historicas: Array.isArray(ndviPoints) ? { evolucion_ndvi_anual: ndviPoints as NdviPoint[] } : undefined,
+    },
+    imagenes: images,
+  }
 }
 
 const ndviChartOptions: ChartOptions<'line'> = {
@@ -65,7 +116,14 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
 
   useEffect(() => {
     let active = true
-    void getHuerto(huertoId).then((row) => { if (active) setHuerto(row) }).catch(() => { if (active) setError('No pudimos cargar la huerta para analizar.') }).finally(() => { if (active) setLoading(false) })
+    void Promise.all([getHuerto(huertoId), getLatestAgromichAnalysis(huertoId)]).then(([row, savedAnalysis]) => {
+      if (!active) return
+      setHuerto(row)
+      if (savedAnalysis) {
+        const savedImages = savedAnalysis.images.map((image) => ({ ...image, image_url: image.thumbnail_url, url: image.thumbnail_url }))
+        setResult(normalizeSavedResult(savedAnalysis.response, savedAnalysis.summary, savedImages))
+      }
+    }).catch(() => { if (active) setError('No pudimos cargar la huerta para analizar.') }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [huertoId])
 
@@ -130,7 +188,13 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
           respuesta_imagen: image,
         })),
       })
-      setResult({ ...analysis, imagenes: parsedImages })
+      setResult(normalizeSavedResult(analysis, {
+        cultivo_inferido: null,
+        incongruencia_detectada: null,
+        estatus_legal: null,
+        dictamen_automatizado: null,
+        registros_deforestacion_hansen: null,
+      }, parsedImages))
       closeLoading()
       await showSuccess('Expediente generado', 'La evidencia histórica está lista para revisar.')
     } catch (cause) {

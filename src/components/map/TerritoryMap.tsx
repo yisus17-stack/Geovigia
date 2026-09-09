@@ -1,5 +1,5 @@
 import landingImage from '../../assets/landing.png'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import 'leaflet/dist/leaflet.css'
 import { CircleMarker, ImageOverlay, MapContainer, Marker, Polygon, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import { divIcon } from 'leaflet'
@@ -46,6 +46,18 @@ function parseHistoricalImages(payload: unknown): HistoricalImage[] {
   })
 }
 
+function parseSavedHistoricalImages(rows: unknown[]): HistoricalImage[] {
+  return rows.flatMap((row) => {
+    if (!row || typeof row !== 'object') return []
+    const image = row as Record<string, unknown>
+    const year = Number(image.anio)
+    const thumbnailUrl = image.thumbnail_url
+    const tileUrlTemplate = image.tile_url_template
+    const bounds = image.bounds
+    return Number.isFinite(year) && (typeof thumbnailUrl === 'string' || typeof tileUrlTemplate === 'string') ? [{ year, thumbnailUrl: typeof thumbnailUrl === 'string' ? thumbnailUrl : undefined, tileUrlTemplate: typeof tileUrlTemplate === 'string' ? tileUrlTemplate : undefined, bounds: Array.isArray(bounds) && bounds.length === 4 && bounds.every((value) => typeof value === 'number') ? bounds as [number, number, number, number] : undefined }] : []
+  })
+}
+
 function parsePolygon(value: unknown): [number, number][][] | null {
   if (typeof value === 'string') {
     try { return parsePolygon(JSON.parse(value)) } catch { return null }
@@ -64,12 +76,15 @@ function parsePolygon(value: unknown): [number, number][][] | null {
   return positions.length > 0 && positions[0].length >= 3 ? positions : null
 }
 
-function MapBounds({ orchards }: { orchards: MapOrchard[] }) {
+function MapBounds({ orchards, onChangingBounds }: { orchards: MapOrchard[]; onChangingBounds: () => void }) {
   const map = useMap()
   useEffect(() => {
     const points = orchards.flatMap((orchard) => orchard.positions.flat())
-    if (points.length) map.fitBounds(points, { padding: [28, 28], maxZoom: 15 })
-  }, [map, orchards])
+    if (points.length) {
+      onChangingBounds()
+      map.fitBounds(points, { padding: [28, 28], maxZoom: 15 })
+    }
+  }, [map, onChangingBounds, orchards])
   return null
 }
 
@@ -100,8 +115,12 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
   const [loaded, setLoaded] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState('Actual')
   const [historicalImage, setHistoricalImage] = useState<HistoricalImage | null>(null)
+  const [savedHistoricalImages, setSavedHistoricalImages] = useState<HistoricalImage[]>([])
+  const [savedImagesLoaded, setSavedImagesLoaded] = useState(false)
   const [historicalImageError, setHistoricalImageError] = useState('')
   const [loadingHistoricalImage, setLoadingHistoricalImage] = useState(false)
+  const [baseMapLoaded, setBaseMapLoaded] = useState(false)
+  const handleChangingBounds = useCallback(() => setBaseMapLoaded(false), [])
 
   useEffect(() => {
     let active = true
@@ -132,13 +151,41 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
 
   useEffect(() => {
     const orchard = databaseOrchards[0]
+    if (!orchard) { setSavedHistoricalImages([]); setSavedImagesLoaded(true); return }
+    let active = true
+    setSavedImagesLoaded(false)
+    void (async () => {
+      let images: HistoricalImage[] = []
+      try {
+        const { data: analysis, error: analysisError } = await supabase.from('analisis').select('id').eq('huerto_id', orchard.id).order('completado_at', { ascending: false }).limit(1).maybeSingle()
+        if (!analysisError && analysis) {
+          const { data, error } = await supabase.from('imagenes_analisis').select('anio, thumbnail_url, tile_url_template, bounds').eq('analisis_id', analysis.id)
+          if (!error) images = parseSavedHistoricalImages(data ?? [])
+        }
+      } finally {
+        if (active) { setSavedHistoricalImages(images); setSavedImagesLoaded(true) }
+      }
+    })()
+    return () => { active = false }
+  }, [databaseOrchards])
+
+  useEffect(() => {
+    const orchard = databaseOrchards[0]
     if (!orchard || selectedPeriod === 'Actual' || !agromichApi) {
       const reset = window.setTimeout(() => setHistoricalImage(null), 0)
       const resetError = window.setTimeout(() => setHistoricalImageError(''), 0)
       return () => { window.clearTimeout(reset); window.clearTimeout(resetError) }
     }
+    if (!savedImagesLoaded) return
     let active = true
     const year = Number(selectedPeriod)
+    const savedImage = savedHistoricalImages.find((image) => image.year === year)
+    if (savedImage) {
+      setHistoricalImage(savedImage)
+      setHistoricalImageError('')
+      setLoadingHistoricalImage(false)
+      return () => { active = false }
+    }
     const requestBody = {
       geometry: orchard.geometry,
       anios: [year],
@@ -154,18 +201,19 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
       if (active) setHistoricalImage(image)
     }).catch(() => { if (active) { setHistoricalImage(null); setHistoricalImageError(`No hay imagen histórica disponible para ${selectedPeriod}.`); setLoadingHistoricalImage(false) } })
     return () => { active = false }
-  }, [databaseOrchards, selectedPeriod])
+  }, [databaseOrchards, savedHistoricalImages, savedImagesLoaded, selectedPeriod])
 
   const visibleOrchards = databaseOrchards
   return <section className={`territory-map ${compact ? 'territory-map-compact' : ''}`} aria-label={label}>
     <MapContainer center={[19.425, -102.062]} zoom={14} scrollWheelZoom={false} className="territory-leaflet-map">
-      <TileLayer attribution="&copy; Esri, Maxar, Earthstar Geographics" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
+      <TileLayer attribution="&copy; Esri, Maxar, Earthstar Geographics" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" eventHandlers={{ load: () => setBaseMapLoaded(true), tileerror: () => setBaseMapLoaded(true) }} />
       {historicalImage?.tileUrlTemplate && <TileLayer key={historicalImage.tileUrlTemplate} url={historicalImage.tileUrlTemplate} bounds={historicalImage.bounds ? [[historicalImage.bounds[1], historicalImage.bounds[0]], [historicalImage.bounds[3], historicalImage.bounds[2]]] : undefined} opacity={1} eventHandlers={{ load: () => { if (historicalImage.year === Number(selectedPeriod)) setLoadingHistoricalImage(false) }, tileerror: () => { if (historicalImage.year === Number(selectedPeriod)) setLoadingHistoricalImage(false) } }} />}
       {historicalImage?.thumbnailUrl && !historicalImage.tileUrlTemplate && visibleOrchards[0] && <ImageOverlay url={historicalImage.thumbnailUrl} bounds={visibleOrchards[0].positions[0]} opacity={1} eventHandlers={{ load: () => { if (historicalImage.year === Number(selectedPeriod)) setLoadingHistoricalImage(false) }, error: () => { if (historicalImage.year === Number(selectedPeriod)) setLoadingHistoricalImage(false) } }} />}
       {loadingHistoricalImage && visibleOrchards[0] && <OrchardImageLoader orchard={visibleOrchards[0]} />}
-      <MapBounds orchards={visibleOrchards} />
+      <MapBounds orchards={visibleOrchards} onChangingBounds={handleChangingBounds} />
       {visibleOrchards.map((orchard, index) => <OrchardPolygon key={orchard.id} orchard={orchard} index={index} />)}
     </MapContainer>
+    {(!loaded || !baseMapLoaded) && <div className="territory-map-loader" role="status" aria-live="polite"><span aria-hidden="true" /><p>Cargando mapa…</p></div>}
     {orchardId && <div className="map-period-selector" role="group" aria-label="Periodo de imagen satelital">{['Actual', '2024', '2022', '2020', '2018'].map((period) => <button key={period} type="button" className={selectedPeriod === period ? 'is-selected' : ''} onClick={() => { setSelectedPeriod(period); setHistoricalImageError(''); setLoadingHistoricalImage(period !== 'Actual') }} aria-pressed={selectedPeriod === period}>{period}</button>)}</div>}
     {historicalImageError && <p className="map-image-status" role="status">{historicalImageError}</p>}
     {showLegend && <div className="map-legend"><b>Capas de analisis</b><span><i className="legend-green" />Cobertura estable</span><span><i className="legend-berry" />Requiere revision</span></div>}

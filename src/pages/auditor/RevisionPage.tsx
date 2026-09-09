@@ -7,8 +7,8 @@ import { getHuertoAuditoria } from '../../lib/auditoria'
 import { downloadBase64File, generateAuditWithEve, type EveDocumentResult } from '../../lib/eve'
 import { supabase } from '../../lib/supabase'
 import { formatHuertoDate, type Huerto } from '../../lib/huertos'
-import { getExpedientResponse, saveAgromichAnalysis, type PersistedImage } from '../../lib/analisis'
-import { closeLoading, showError, showLoading, showSuccess } from '../../lib/alerts'
+import { getExpedientResponse, getLatestSavedExpedient, saveAgromichAnalysis, type PersistedImage } from '../../lib/analisis'
+import { closeLoading, showError, showLoading, showSuccess, updateLoading } from '../../lib/alerts'
 
 const agromichApi = import.meta.env.DEV ? '/agromich-api' : import.meta.env.VITE_AGROMICH_API_URL
 
@@ -35,6 +35,29 @@ function parseImages(payload: unknown): PersistedImage[] {
   })
 }
 
+function buildPdfExpedient(expedient: unknown, huerto: Huerto) {
+  const source = expedient !== null && typeof expedient === 'object' && !Array.isArray(expedient)
+    ? expedient as Record<string, unknown>
+    : {}
+  const analysis = source.expediente !== null && typeof source.expediente === 'object' && !Array.isArray(source.expediente)
+    ? source.expediente as Record<string, unknown>
+    : source
+
+  return {
+    ...analysis,
+    datos_predio: {
+      expediente_no: `VIGIA/AMB/${huerto.id.slice(0, 8).toUpperCase()}`,
+      propietario: huerto.propietario,
+      nombre_huerto: huerto.nombre,
+      municipio: huerto.municipio,
+      localidad: huerto.localidad,
+      estado: 'Michoacán',
+      cultivo_declarado: huerto.cultivo,
+      superficie_hectareas: huerto.superficie_ha,
+    },
+  }
+}
+
 function RevisionPage() {
   const { id = '' } = useParams()
   const [huerto, setHuerto] = useState<Huerto | null>(null)
@@ -49,9 +72,16 @@ function RevisionPage() {
 
   useEffect(() => {
     let active = true
-    void getHuertoAuditoria(id).then((row) => {
+    void Promise.all([getHuertoAuditoria(id), getLatestSavedExpedient(id)]).then(([row, savedExpedient]) => {
       if (!active) return
       setHuerto(row)
+      if (savedExpedient && !savedExpedient.requiresRefresh) {
+        setAnalysisId(savedExpedient.analysisId)
+        setExpedientReady(true)
+        setAgentStatus('Expediente recuperado de la base de datos.')
+      } else if (savedExpedient?.requiresRefresh) {
+        setAgentStatus('Se modificaron datos del predio; genera un expediente actualizado.')
+      }
     }).catch((cause) => {
       if (active) setError(cause instanceof Error ? cause.message : 'No pudimos cargar esta huerta.')
     }).finally(() => { if (active) setLoading(false) })
@@ -101,6 +131,7 @@ function RevisionPage() {
 
       const expediente = await expedienteResponse.json()
       setAgentStatus('Consultando imágenes históricas…')
+      updateLoading('Consultando imágenes…')
       const imagesResponse = await fetch(`${agromichApi}/api/v1/expediente/imagenes-historicas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,6 +141,7 @@ function RevisionPage() {
       if (!imagesResponse.ok) throw new Error(`AgroMich rechazó las imágenes históricas (HTTP ${imagesResponse.status}).`)
       const imagesPayload = await imagesResponse.json()
       setAgentStatus('Guardando expediente en la base de datos…')
+      updateLoading('Guardando expediente…')
       const savedAnalysisId = await saveAgromichAnalysis({
         huertoId: huerto.id,
         periodStart: 2018,
@@ -147,6 +179,7 @@ function RevisionPage() {
       setAgentError('Primero guarda el expediente de AgroMich.')
       return
     }
+    if (!huerto) return
     setAgentRunning(true)
     setAgentError('')
     setDocumentResult(null)
@@ -156,7 +189,9 @@ function RevisionPage() {
     const timeout = window.setTimeout(() => controller.abort(), 300_000)
     try {
       const savedResponse = await getExpedientResponse(analysisId)
-      const document = await generateAuditWithEve(savedResponse, setAgentStatus, controller.signal)
+      const document = await generateAuditWithEve(buildPdfExpedient(savedResponse, huerto), (status) => {
+        setAgentStatus(status)
+      }, controller.signal)
       setDocumentResult(document)
       setAgentStatus(`Auditoría generada. El ${document.mediaType === 'application/pdf' ? 'PDF' : 'Word'} está listo para descargar.`)
       closeLoading()

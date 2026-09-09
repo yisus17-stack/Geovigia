@@ -4,12 +4,26 @@ import OrchardDrawingMap, { type OrchardMapHandle } from '../map/OrchardDrawingM
 import { parsePolygonCoordinates, type PolygonCoordinates } from '../../lib/polygon'
 import { createHuerto, getHuerto, updateHuerto } from '../../lib/huertos'
 import { closeLoading, showError, showLoading, showSuccess } from '../../lib/alerts'
+import { supabase } from '../../lib/supabase'
 
 type HuertoEditorFormProps = { huertoId?: string }
 
 type FormData = { propietario: string; nombre: string; cultivo: string; municipio: string; localidad: string }
 
 const emptyForm: FormData = { propietario: '', nombre: '', cultivo: 'aguacate', municipio: '', localidad: '' }
+
+function getRegisteredOwner(metadata: Record<string, unknown> | undefined, email?: string) {
+  const fullName = metadata?.full_name ?? metadata?.name
+  if (typeof fullName === 'string' && fullName.trim()) return fullName.trim()
+
+  const firstName = typeof metadata?.first_name === 'string' ? metadata.first_name.trim() : ''
+  const lastName = typeof metadata?.last_name === 'string' ? metadata.last_name.trim() : ''
+  return [firstName, lastName].filter(Boolean).join(' ') || email || ''
+}
+
+function isUnregisteredOwner(value: string | null | undefined) {
+  return !value?.trim() || value.trim().toLocaleLowerCase('es-MX') === 'sin registrar'
+}
 
 function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
   const navigate = useNavigate()
@@ -33,6 +47,19 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
     }).catch(() => { if (active) setError('No pudimos cargar esta huerta.') }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [huertoId])
+
+  useEffect(() => {
+    let active = true
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return
+      const registeredOwner = getRegisteredOwner(data.user?.user_metadata, data.user?.email)
+      if (!registeredOwner) return
+      setForm((current) => isUnregisteredOwner(current.propietario)
+        ? { ...current, propietario: registeredOwner }
+        : current)
+    })
+    return () => { active = false }
+  }, [loading])
 
   const updatePolygon = useCallback((coordinates: PolygonCoordinates | null, nextHectares: number | null) => {
     setPolygon(coordinates)
