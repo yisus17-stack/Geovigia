@@ -150,6 +150,7 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
   const [focusedOrchardId, setFocusedOrchardId] = useState<string | null>(null)
   const [resetMapKey, setResetMapKey] = useState(0)
   const handleChangingBounds = useCallback(() => setBaseMapLoaded(false), [])
+  const availablePeriods = ['Actual', ...Array.from({ length: new Date().getFullYear() - 2018 + 1 }, (_, index) => String(new Date().getFullYear() - index))]
 
   useEffect(() => {
     let active = true
@@ -273,7 +274,7 @@ function LiveTerritoryMap({ label = 'Territory map', compact = false, showLegend
       {visibleOrchards.map((orchard, index) => <OrchardPolygon key={orchard.id} orchard={orchard} index={index} onSelect={selectOrResetOrchard} />)}
     </MapContainer>
     {(!loaded || !baseMapLoaded) && <div className="territory-map-loader" role="status" aria-live="polite"><span aria-hidden="true" /><p>Cargando mapa…</p></div>}
-    {orchardId && <div className="map-period-selector" role="group" aria-label="Periodo de imagen satelital">{['Actual', '2024', '2022', '2020', '2018'].map((period) => <button key={period} type="button" className={selectedPeriod === period ? 'is-selected' : ''} onClick={() => { setSelectedPeriod(period); setHistoricalImageError(''); setLoadingHistoricalImage(period !== 'Actual') }} aria-pressed={selectedPeriod === period}>{period}</button>)}</div>}
+    {orchardId && <div className="map-period-selector" role="group" aria-label="Periodo de imagen satelital">{availablePeriods.map((period) => <button key={period} type="button" className={selectedPeriod === period ? 'is-selected' : ''} onClick={() => { setSelectedPeriod(period); setHistoricalImageError(''); setLoadingHistoricalImage(period !== 'Actual') }} aria-pressed={selectedPeriod === period}>{period}</button>)}</div>}
     {historicalImageError && <p className="map-image-status" role="status">{historicalImageError}</p>}
     {showLegend && <div className="map-legend" aria-label="Leyenda del mapa"><b>Leyenda</b><span><i className="legend-green" />Huerta activa</span><span><i className="legend-berry" />Auditoría pendiente</span><span><i className="legend-marker" />Marcador y nombre</span><small>El contorno indica el polígono registrado.</small></div>}
     <p className="map-attribution">{!loaded ? 'Cargando huertas desde Supabase...' : databaseOrchards.length > 0 ? `${selectedPeriod === 'Actual' ? 'Vista actual' : `Vista ${selectedPeriod}`} · ${databaseOrchards.length} huerta(s) cargada(s)` : 'No hay huertas con poligono para mostrar'}</p>

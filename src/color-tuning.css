@@ -591,6 +591,7 @@
 }
 
 .analysis-summary b { display: block; font-size: 1rem; margin: .4rem 0; }
+.analysis-summary > div:nth-child(2) b { text-transform: capitalize; }
 .analysis-summary p { color: #66706b; font-size: .78rem; line-height: 1.5; margin: 0; }
 .ndvi-timeline { border: 1px solid #e2e5e3; border-radius: .5rem; padding: 1rem; }
 .ndvi-timeline h3 { font-size: 1.15rem; margin: .2rem 0 1rem; }
@@ -600,6 +601,8 @@
 .ndvi-bars span { color: #66706b; font-size: .62rem; margin-top: .4rem; }
 .analysis-alert { background: #fff5e1; color: #755312; font-size: .8rem; margin: 0; padding: .8rem; }
 .analysis-alert.is-fire { background: #fff0ed; color: #9a3e28; }
+.analysis-alert.is-normal { background: #e8f5ed; color: #17633c; }
+.analysis-alert.is-empty { background: #eef2ef; color: #52605a; }
 .pasted-response { display: grid; gap: .65rem; }
 .pasted-response label { color: #66706b; display: grid; font-size: .76rem; font-weight: 600; gap: .4rem; }
 .pasted-response textarea { border: 1px solid #dfe4e1; border-radius: .45rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; line-height: 1.45; padding: .7rem; resize: vertical; }
@@ -1366,7 +1369,7 @@
 /* Las capas internas de Leaflet no deben salir por encima del menú móvil. */
 .territory-map { isolation: isolate; z-index: 0; }
 .territory-map .map-legend { z-index: 600; }
-.map-period-selector { align-items: center; background: rgb(255 255 255 / 96%); border: 1px solid rgb(221 229 224 / 92%); border-radius: .55rem; box-shadow: 0 3px 12px rgb(7 61 45 / 16%); display: flex; left: 1rem; overflow: hidden; position: absolute; top: 1rem; z-index: 600; }
+.map-period-selector { align-items: center; background: rgb(255 255 255 / 96%); border: 1px solid rgb(221 229 224 / 92%); border-radius: .55rem; box-shadow: 0 3px 12px rgb(7 61 45 / 16%); display: flex; left: 1rem; max-width: calc(100% - 2rem); overflow-x: auto; position: absolute; top: 1rem; z-index: 600; }
 .map-period-selector button { background: transparent; border: 0; color: #466057; font: inherit; font-size: .73rem; font-weight: 800; min-width: 3.65rem; padding: .6rem .65rem; }
 .map-period-selector button.is-selected { background: #073d2d; color: #fff; }
 .map-period-selector button:focus-visible { outline: 3px solid #9ed2af; outline-offset: -3px; }
