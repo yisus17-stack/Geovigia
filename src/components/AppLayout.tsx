@@ -9,7 +9,7 @@ type AppLayoutProps = { children: ReactNode; breadcrumbCurrent?: string }
 type NavIcon = 'overview' | 'orchards' | 'reviews' | 'settings'
 
 const links: { to: string; label: string; icon: NavIcon }[] = [
-  { to: '/auditor/huertas', label: 'Huertas', icon: 'orchards' },
+  { to: '/auditor/huertas', label: 'Predios', icon: 'orchards' },
   { to: '/auditor', label: 'Auditorías', icon: 'reviews' },
   { to: '/auditor/mapas', label: 'Mapas y evidencia', icon: 'overview' },
   { to: '/auditor/configuracion', label: 'Configuración', icon: 'settings' },

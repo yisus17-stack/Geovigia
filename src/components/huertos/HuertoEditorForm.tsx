@@ -12,13 +12,13 @@ type FormData = { propietario: string; nombre: string; cultivo: string; municipi
 
 const emptyForm: FormData = { propietario: '', nombre: '', cultivo: 'aguacate', municipio: '', localidad: '' }
 
-function getRegisteredOwner(metadata: Record<string, unknown> | undefined, email?: string) {
+function getRegisteredOwner(metadata: Record<string, unknown> | undefined) {
   const fullName = metadata?.full_name ?? metadata?.name
   if (typeof fullName === 'string' && fullName.trim()) return fullName.trim()
 
   const firstName = typeof metadata?.first_name === 'string' ? metadata.first_name.trim() : ''
   const lastName = typeof metadata?.last_name === 'string' ? metadata.last_name.trim() : ''
-  return [firstName, lastName].filter(Boolean).join(' ') || email || ''
+  return [firstName, lastName].filter(Boolean).join(' ')
 }
 
 function isUnregisteredOwner(value: string | null | undefined) {
@@ -52,7 +52,7 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
     let active = true
     void supabase.auth.getUser().then(({ data }) => {
       if (!active) return
-      const registeredOwner = getRegisteredOwner(data.user?.user_metadata, data.user?.email)
+      const registeredOwner = getRegisteredOwner(data.user?.user_metadata)
       if (!registeredOwner) return
       setForm((current) => isUnregisteredOwner(current.propietario)
         ? { ...current, propietario: registeredOwner }
@@ -101,7 +101,7 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
       const saved = huertoId ? await updateHuerto(huertoId, input) : await createHuerto(input)
       closeLoading()
       await showSuccess(huertoId ? 'Cambios guardados' : 'Huerta registrada', 'La información quedó guardada correctamente.')
-      navigate(`/auditor/huertas/${saved.id}/editar`)
+      navigate(`/auditor/huertas/${saved.id}`)
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'No se pudo guardar la huerta.'
       closeLoading(); setError(message); void showError('No se pudo guardar', message)
@@ -125,7 +125,7 @@ function HuertoEditorForm({ huertoId }: HuertoEditorFormProps) {
       </div>
     </section>
     <section className="drawing-section form-panel"><div className="form-panel-heading"><p className="eyebrow">Delimita tu huerta</p><h2>Edita los puntos directamente en el mapa.</h2><p>Usa “Editar puntos” para arrastrar vértices, o “Dibujar terreno” para crear un nuevo polígono.</p></div>
-      <div className="drawing-map"><OrchardDrawingMap ref={mapRef} initialPolygon={polygon} onPolygonChange={updatePolygon} /><div className="drawing-status"><span>Superficie calculada</span><b>{hectares === null ? '— ha' : `${hectares.toFixed(2)} ha`}</b><small>{polygon ? 'Polígono listo para guardar.' : 'Dibuja un polígono para calcularla.'}</small></div></div>
+      <div className="drawing-map"><OrchardDrawingMap ref={mapRef} initialPolygon={polygon} label={form.nombre} onPolygonChange={updatePolygon} /><div className="drawing-status"><span>Superficie calculada</span><b>{hectares === null ? '— ha' : `${hectares.toFixed(2)} ha`}</b><small>{polygon ? 'Polígono listo para guardar.' : 'Dibuja un polígono para calcularla.'}</small></div></div>
       <div className="map-actions"><button type="button" className="button button-quiet" onClick={() => mapRef.current?.locate()}>Mi ubicación</button><button type="button" className="button" onClick={() => mapRef.current?.startDrawing()}>Dibujar terreno</button><button type="button" className="button button-quiet" onClick={() => mapRef.current?.editPolygon()}>Editar puntos</button><button type="button" className="text-button" onClick={() => mapRef.current?.clearPolygon()}>Borrar polígono</button></div>
     </section>
     {error && <p className="form-error" role="alert">{error}</p>}

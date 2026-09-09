@@ -5,12 +5,13 @@ const baseOptions = {
   customClass: { confirmButton: 'swal-confirm', cancelButton: 'swal-cancel' },
 }
 
-export function showLoading(title: string, _text = 'Espera un momento...') {
+export function showLoading(title: string, text = 'Espera un momento...') {
   void Swal.fire({
     ...baseOptions,
     toast: true,
     position: 'top-end',
     title,
+    text,
     showConfirmButton: false,
     didOpen: () => Swal.showLoading(),
   })

@@ -12,7 +12,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, 
 type ApiResult = {
   expediente?: {
     validacion_cultivo_e_infraestructura?: { cultivo_inferido?: string; observacion?: string; incongruencia_detectada?: boolean }
-    auditoria_ambiental_y_forestal?: { estatus_legal?: string; dictamen_automatizado?: string; registros_deforestacion_hansen?: number[] }
+    auditoria_ambiental_y_forestal?: { estatus_legal?: string; dictamen_automatizado?: string; registros_deforestacion_hansen?: number[]; alerta_incendios_historicos?: boolean; deforestacion_en_periodo_analisis?: boolean }
     series_historicas?: { evolucion_ndvi_anual?: NdviPoint[] }
   }
   imagenes?: ApiImage[]
@@ -62,6 +62,8 @@ function normalizeSavedResult(response: unknown, summary: AnalysisSummary, image
         estatus_legal: stringValue(findValue(audit, ['estatus_legal', 'dictamen_legal', 'estatus'])) ?? summary.estatus_legal ?? undefined,
         dictamen_automatizado: stringValue(findValue(audit, ['dictamen_automatizado', 'dictamen', 'recomendacion'])) ?? summary.dictamen_automatizado ?? undefined,
         registros_deforestacion_hansen: (Array.isArray(hansen) ? hansen : summary.registros_deforestacion_hansen ?? undefined) as number[] | undefined,
+        alerta_incendios_historicos: booleanValue(findValue(audit, ['alerta_incendios_historicos', 'incendios_historicos'])) ?? summary.alerta_incendios_historicos ?? undefined,
+        deforestacion_en_periodo_analisis: booleanValue(findValue(audit, ['deforestacion_en_periodo_analisis', 'deforestacion_en_periodo'])) ?? summary.deforestacion_en_periodo ?? undefined,
       },
       series_historicas: Array.isArray(ndviPoints) ? { evolucion_ndvi_anual: ndviPoints as NdviPoint[] } : undefined,
     },
@@ -194,6 +196,8 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
         estatus_legal: null,
         dictamen_automatizado: null,
         registros_deforestacion_hansen: null,
+        alerta_incendios_historicos: null,
+        deforestacion_en_periodo: null,
       }, parsedImages))
       closeLoading()
       await showSuccess('Expediente generado', 'La evidencia histórica está lista para revisar.')
@@ -205,8 +209,19 @@ function AgromichAnalysisPanel({ huertoId }: { huertoId: string }) {
 
   const validation = result?.expediente?.validacion_cultivo_e_infraestructura
   const audit = result?.expediente?.auditoria_ambiental_y_forestal
+  const hansenYears = audit?.registros_deforestacion_hansen ?? []
+  const hasResultData = Boolean(validation?.cultivo_inferido || validation?.observacion || validation?.incongruencia_detectada !== undefined || audit?.estatus_legal || audit?.dictamen_automatizado || images.length || ndvi.length || hansenYears.length || audit?.alerta_incendios_historicos !== undefined || audit?.deforestacion_en_periodo_analisis !== undefined)
+  const hasChanges = Boolean(hansenYears.length || audit?.alerta_incendios_historicos || audit?.deforestacion_en_periodo_analisis)
+  const requiresReview = validation?.incongruencia_detectada === false
+  const analysisStatus = !result ? null : !hasResultData
+    ? { tone: 'is-empty', title: 'Sin resultados suficientes', detail: 'El expediente se generó, pero no devolvió indicadores para emitir una conclusión.' }
+    : hasChanges
+      ? { tone: 'is-alert', title: 'Cambios detectados', detail: 'La evidencia histórica reporta señales que requieren revisión del auditor.' }
+      : requiresReview
+        ? { tone: 'is-review', title: 'Requiere revisión', detail: 'La validación automática no confirmó la congruencia del cultivo.' }
+        : { tone: 'is-normal', title: 'Sin cambios detectados', detail: 'La evidencia analizada no reporta alertas ambientales ni territoriales.' }
 
-  return <section className="agromich-panel"><div><p className="eyebrow">Evidencia histórica</p><h2>Expediente satelital</h2><p>Genera el dictamen e imágenes Sentinel/Landsat de esta huerta.</p></div>{loading ? <p>Cargando datos del predio...</p> : <button className="button" onClick={() => { void runAnalysis() }} disabled={running || !huerto?.poligono}>{running ? 'Generando evidencia histórica...' : 'Generar expediente e imágenes →'}</button>}{error && <p className="form-error" role="alert">{error}</p>}{result && <div className="agromich-result">{validation?.incongruencia_detectada === false && <aside className="analysis-congruence-alert" role="alert"><span aria-hidden="true">!</span><div><b>Validación de cultivo pendiente</b><p>AgroMich no confirmó la congruencia entre el cultivo declarado y la evidencia espacial. Revisa el predio antes de continuar con la auditoría.</p></div></aside>}<div className="analysis-summary"><div><span>Dictamen</span><b>{audit?.estatus_legal ?? 'Sin dictamen'}</b><p>{audit?.dictamen_automatizado}</p></div><div><span>Cultivo inferido</span><b>{validation?.cultivo_inferido ?? 'Sin dato'}</b><p>{validation?.observacion}</p></div><div><span>Congruencia</span><b>{validation?.incongruencia_detectada === false ? 'Por verificar' : 'Sin alertas'}</b><p>{validation?.incongruencia_detectada === false ? 'La validación requiere revisión humana.' : 'La validación automática no reportó alertas.'}</p></div></div>{images.length > 0 && <div className="satellite-timeline"><p className="eyebrow">Imágenes históricas</p><div>{images.map((image) => { const url = image.thumbnail_url ?? image.image_url ?? image.url; return <figure key={image.anio}>{url ? <img src={url} alt={`Imagen satelital ${image.anio}`} /> : <span>Imagen no disponible</span>}<figcaption>{image.anio} · {image.fuente ?? 'Satelital'}</figcaption></figure> })}</div></div>}{ndvi.length > 0 && <div className="ndvi-timeline"><div><p className="eyebrow">Serie histórica NDVI</p><h3>Evolución de la vegetación</h3><p>Índice anual de vegetación obtenido del expediente de AgroMich.</p></div><div className="ndvi-line-chart"><Line aria-label="Gráfica de línea de evolución NDVI" data={ndviChartData} options={ndviChartOptions} /></div></div>}{audit?.registros_deforestacion_hansen?.length ? <p className="analysis-alert">Años con registros Hansen: {audit.registros_deforestacion_hansen.join(', ')}</p> : null}</div>}</section>
+  return <section className="agromich-panel"><div><p className="eyebrow">Evidencia histórica</p><h2>Expediente satelital</h2><p>Genera el dictamen e imágenes Sentinel/Landsat de esta huerta.</p></div>{loading ? <p>Cargando datos del predio...</p> : <button className="button" onClick={() => { void runAnalysis() }} disabled={running || !huerto?.poligono}>{running ? 'Generando evidencia histórica...' : result ? 'Actualizar expediente e imágenes →' : 'Generar expediente e imágenes →'}</button>}{error && <p className="form-error" role="alert">{error}</p>}{!loading && !result && !error && <div className="analysis-empty"><b>Aún no hay un expediente generado.</b><p>Genera el expediente para consultar las imágenes, el cultivo inferido y las alertas territoriales.</p></div>}{result && <div className="agromich-result">{analysisStatus && <aside className={`analysis-status ${analysisStatus.tone}`} role="status"><span aria-hidden="true">{analysisStatus.tone === 'is-normal' ? '✓' : '!'}</span><div><b>{analysisStatus.title}</b><p>{analysisStatus.detail}</p></div></aside>}<div className="analysis-summary"><div><span>Dictamen</span><b>{audit?.estatus_legal ?? 'Sin dictamen disponible'}</b><p>{audit?.dictamen_automatizado ?? 'AgroMich no devolvió un dictamen para este expediente.'}</p></div><div><span>Cultivo inferido</span><b>{validation?.cultivo_inferido ?? 'Sin dato disponible'}</b><p>{validation?.observacion ?? 'No se recibió una observación de validación.'}</p></div><div><span>Congruencia</span><b>{requiresReview ? 'Por verificar' : hasResultData ? 'Sin alertas' : 'Sin información'}</b><p>{requiresReview ? 'La validación requiere revisión humana.' : hasResultData ? 'La validación automática no reportó alertas.' : 'Vuelve a generar el expediente para obtener indicadores.'}</p></div></div>{audit?.alerta_incendios_historicos && <p className="analysis-alert is-fire" role="alert">Alerta de incendios históricos detectada. Revisa la evidencia antes de continuar con la auditoría.</p>}{audit?.deforestacion_en_periodo_analisis && <p className="analysis-alert" role="alert">Se detectaron cambios de cobertura durante el periodo analizado.</p>}{images.length > 0 && <div className="satellite-timeline"><p className="eyebrow">Imágenes históricas</p><div>{images.map((image) => { const url = image.thumbnail_url ?? image.image_url ?? image.url; return <figure key={image.anio}>{url ? <img src={url} alt={`Imagen satelital ${image.anio}`} /> : <span>Imagen no disponible</span>}<figcaption>{image.anio} · {image.fuente ?? 'Satelital'}</figcaption></figure> })}</div></div>}{ndvi.length > 0 && <div className="ndvi-timeline"><div><p className="eyebrow">Serie histórica NDVI</p><h3>Evolución de la vegetación</h3><p>Índice anual de vegetación obtenido del expediente de AgroMich.</p></div><div className="ndvi-line-chart"><Line aria-label="Gráfica de línea de evolución NDVI" data={ndviChartData} options={ndviChartOptions} /></div></div>}{hansenYears.length > 0 && <p className="analysis-alert">Cambios históricos detectados por Hansen: {hansenYears.join(', ')}.</p>}</div>}</section>
 }
 
 export default AgromichAnalysisPanel

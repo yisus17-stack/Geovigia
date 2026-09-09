@@ -1,11 +1,5 @@
 import { supabase } from './supabase'
-
-function throwDatabaseError(error: { message?: string; details?: string; hint?: string; code?: string }): never {
-  const parts = [error.message, error.details, error.hint].filter((part): part is string => Boolean(part && part.trim()))
-  const description = parts.join(' ')
-  console.error('[GeoVigía] Error de Supabase', { code: error.code, message: error.message, details: error.details, hint: error.hint })
-  throw new Error(error.code ? `[${error.code}] ${description}` : description || 'Supabase rechazó la operación.')
-}
+import { throwFriendlyDatabaseError } from './errors'
 
 export type PolygonGeometry = { type: 'Polygon'; coordinates: number[][][] }
 
@@ -28,7 +22,7 @@ export async function getHuertos() {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').select('*').order('created_at', { ascending: false })
-  if (error) throwDatabaseError(error)
+  if (error) throwFriendlyDatabaseError(error, 'No pudimos cargar las huertas. Intenta de nuevo.')
   return (data ?? []) as Huerto[]
 }
 
@@ -41,7 +35,7 @@ export async function getHuerto(id: string) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').select('*').eq('id', id).single()
-  if (error) throwDatabaseError(error)
+  if (error) throwFriendlyDatabaseError(error, 'No pudimos cargar esta huerta. Intenta de nuevo.')
   return data as Huerto
 }
 
@@ -49,7 +43,7 @@ export async function createHuerto(input: HuertoInput) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').insert({ ...input, estado: 'activo' }).select().single()
-  if (error) throwDatabaseError(error)
+  if (error) throwFriendlyDatabaseError(error, 'No pudimos registrar la huerta. Intenta de nuevo.')
   return data as Huerto
 }
 
@@ -59,7 +53,7 @@ export async function updateHuerto(id: string, input: HuertoInput) {
     .select('propietario, nombre, cultivo, municipio, localidad')
     .eq('id', id)
     .single()
-  if (currentError) throwDatabaseError(currentError)
+  if (currentError) throwFriendlyDatabaseError(currentError, 'No pudimos preparar los cambios de la huerta. Intenta de nuevo.')
 
   // La geometría puede ajustarse sin invalidar el expediente satelital.
   const hasRelevantChanges = ['propietario', 'nombre', 'cultivo', 'municipio', 'localidad'].some((field) => {
@@ -70,14 +64,14 @@ export async function updateHuerto(id: string, input: HuertoInput) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').update(input).eq('id', id).select().single()
-  if (error) throwDatabaseError(error)
+  if (error) throwFriendlyDatabaseError(error, 'No pudimos guardar los cambios de la huerta. Intenta de nuevo.')
   if (hasRelevantChanges) {
     const { error: staleError } = await supabase
       .from('analisis')
-      .update({ estado: 'requiere_actualizacion' })
+      .update({ estado: 'pendiente' })
       .eq('huerto_id', id)
       .eq('estado', 'completado')
-    if (staleError) throwDatabaseError(staleError)
+    if (staleError) throwFriendlyDatabaseError(staleError, 'La huerta se guardó, pero no pudimos actualizar su evidencia. Intenta guardar de nuevo.')
   }
   return data as Huerto
 }
@@ -86,13 +80,13 @@ export async function deleteHuerto(id: string) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { error } = await supabase.from('huertos').delete().eq('id', id)
-  if (error) throwDatabaseError(error)
+  if (error) throwFriendlyDatabaseError(error, 'No pudimos eliminar la huerta. Intenta de nuevo.')
 }
 
 export async function solicitarAuditoria(id: string) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
   if (authError || !auth.user) throw new Error('Tu sesión no está activa.')
   const { data, error } = await supabase.from('huertos').update({ estado: 'pendiente' }).eq('id', id).select().single()
-  if (error) throwDatabaseError(error)
+  if (error) throwFriendlyDatabaseError(error, 'No pudimos enviar la huerta a auditoría. Intenta de nuevo.')
   return data as Huerto
 }

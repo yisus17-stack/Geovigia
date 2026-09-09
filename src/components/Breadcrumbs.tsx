@@ -6,28 +6,28 @@ type BreadcrumbsProps = { currentLabel?: string }
 
 function getItems(pathname: string, currentLabel?: string): BreadcrumbItem[] {
   if (pathname === '/auditor') return [{ label: 'Panel' }]
-  if (pathname === '/auditor/huertas') return [{ label: 'Panel', to: '/auditor' }, { label: 'Huertas' }]
+  if (pathname === '/auditor/huertas') return [{ label: 'Panel', to: '/auditor' }, { label: 'Predios' }]
   if (pathname === '/auditor/huertas/nuevo') return [
     { label: 'Panel', to: '/auditor' },
-    { label: 'Huertas', to: '/auditor/huertas' },
-    { label: 'Registrar huerta' },
+    { label: 'Predios', to: '/auditor/huertas' },
+    { label: 'Registrar predio' },
   ]
   if (pathname.endsWith('/editar')) return [
     { label: 'Panel', to: '/auditor' },
-    { label: 'Huertas', to: '/auditor/huertas' },
-    { label: currentLabel || 'Huerta', to: pathname.replace(/\/editar$/, '') },
-    { label: 'Editar huerta' },
+    { label: 'Predios', to: '/auditor/huertas' },
+    { label: currentLabel || 'Predio', to: pathname.replace(/\/editar$/, '') },
+    { label: 'Editar predio' },
   ]
   if (pathname.startsWith('/auditor/huertas/')) return [
     { label: 'Panel', to: '/auditor' },
-    { label: 'Huertas', to: '/auditor/huertas' },
-    { label: currentLabel || 'Huerta' },
+    { label: 'Predios', to: '/auditor/huertas' },
+    { label: currentLabel || 'Predio' },
   ]
   if (pathname === '/auditor/mapas') return [{ label: 'Panel', to: '/auditor' }, { label: 'Mapas y evidencia' }]
   if (pathname.startsWith('/auditor/auditorias/')) return [
     { label: 'Panel', to: '/auditor' },
     { label: 'Auditorías', to: '/auditor' },
-    { label: currentLabel || 'Huerta' },
+    { label: currentLabel || 'Predio' },
   ]
   return []
 }

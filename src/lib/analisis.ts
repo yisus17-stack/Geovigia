@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { throwFriendlyDatabaseError } from './errors'
 
 export type PersistedImage = {
   anio: number
@@ -67,7 +68,8 @@ export async function saveAgromichAnalysis(input: {
     .select('id')
     .single()
 
-  if (analysisError || !analysis) throw analysisError ?? new Error('AgroMich no devolvió un análisis guardable.')
+  if (analysisError) throwFriendlyDatabaseError(analysisError, 'No pudimos guardar el análisis. Intenta generarlo de nuevo.')
+  if (!analysis) throw new Error('No pudimos guardar el análisis. Intenta generarlo de nuevo.')
 
   const { error: expedientError } = await supabase
     .from('expedientes')
@@ -78,7 +80,7 @@ export async function saveAgromichAnalysis(input: {
       generado_at: new Date().toISOString(),
     })
 
-  if (expedientError) throw expedientError
+  if (expedientError) throwFriendlyDatabaseError(expedientError, 'El análisis se guardó, pero no pudimos preparar el expediente.')
 
   await saveAnalysisImages(analysis.id as string, input.images)
 
@@ -103,7 +105,7 @@ export async function saveAnalysisImages(analysisId: string, images: PersistedIm
 
   if (imageRows.length > 0) {
     const { error: imagesError } = await supabase.from('imagenes_analisis').insert(imageRows)
-    if (imagesError) throw imagesError
+    if (imagesError) throwFriendlyDatabaseError(imagesError, 'No pudimos guardar las imágenes del análisis.')
   }
 
 }
@@ -114,18 +116,20 @@ export type AnalysisSummary = {
   estatus_legal: string | null
   dictamen_automatizado: string | null
   registros_deforestacion_hansen: number[] | null
+  alerta_incendios_historicos: boolean | null
+  deforestacion_en_periodo: boolean | null
 }
 
 export async function getLatestAgromichAnalysis(huertoId: string): Promise<{ response: unknown; images: PersistedImage[]; summary: AnalysisSummary } | null> {
   const { data: analysis, error: analysisError } = await supabase
     .from('analisis')
-    .select('id, respuesta_agromich, cultivo_inferido, incongruencia_detectada, estatus_legal, dictamen_automatizado, registros_deforestacion_hansen')
+    .select('id, respuesta_agromich, cultivo_inferido, incongruencia_detectada, estatus_legal, dictamen_automatizado, registros_deforestacion_hansen, alerta_incendios_historicos, deforestacion_en_periodo')
     .eq('huerto_id', huertoId)
     .order('completado_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  if (analysisError) throw analysisError
+  if (analysisError) throwFriendlyDatabaseError(analysisError, 'No pudimos consultar el análisis de esta huerta.')
   if (!analysis) return null
 
   const { data: images, error: imagesError } = await supabase
@@ -134,7 +138,7 @@ export async function getLatestAgromichAnalysis(huertoId: string): Promise<{ res
     .eq('analisis_id', analysis.id)
     .order('anio', { ascending: true })
 
-  if (imagesError) throw imagesError
+  if (imagesError) throwFriendlyDatabaseError(imagesError, 'No pudimos cargar las imágenes del análisis.')
   return {
     response: analysis.respuesta_agromich,
     images: (images ?? []) as PersistedImage[],
@@ -144,6 +148,8 @@ export async function getLatestAgromichAnalysis(huertoId: string): Promise<{ res
       estatus_legal: analysis.estatus_legal,
       dictamen_automatizado: analysis.dictamen_automatizado,
       registros_deforestacion_hansen: analysis.registros_deforestacion_hansen,
+      alerta_incendios_historicos: analysis.alerta_incendios_historicos,
+      deforestacion_en_periodo: analysis.deforestacion_en_periodo,
     },
   }
 }
@@ -154,7 +160,7 @@ export async function getExpedientResponse(analysisId: string) {
     .select('respuesta_completa')
     .eq('analisis_id', analysisId)
     .single()
-  if (error) throw error
+  if (error) throwFriendlyDatabaseError(error, 'No pudimos cargar el expediente.')
   return data.respuesta_completa
 }
 
@@ -167,7 +173,7 @@ export async function getLatestSavedExpedient(huertoId: string): Promise<{ analy
     .limit(1)
     .maybeSingle()
 
-  if (analysisError) throw analysisError
+  if (analysisError) throwFriendlyDatabaseError(analysisError, 'No pudimos consultar el expediente de esta huerta.')
   if (!analysis) return null
 
   const { data: expedient, error: expedientError } = await supabase
@@ -176,7 +182,7 @@ export async function getLatestSavedExpedient(huertoId: string): Promise<{ analy
     .eq('analisis_id', analysis.id)
     .maybeSingle()
 
-  if (expedientError) throw expedientError
+  if (expedientError) throwFriendlyDatabaseError(expedientError, 'El análisis se guardó, pero no pudimos preparar el expediente.')
   if (!expedient) return null
   return { analysisId: analysis.id, requiresRefresh: analysis.estado !== 'completado' }
 }

@@ -520,6 +520,34 @@
   display: none;
 }
 
+.drawing-map-label { background: rgb(7 61 45 / 92%); border: 0; border-radius: .35rem; box-shadow: 0 2px 8px rgb(0 0 0 / 18%); color: #fff; font-family: Poppins, sans-serif; font-size: .68rem; font-weight: 700; padding: .3rem .5rem; }
+.drawing-map-label::before { display: none; }
+.leaflet-orchard-map .leaflet-control-attribution { display: none; }
+
+.territory-map-label { transition: background-color .16s ease, transform .16s ease; }
+.territory-map-label:hover { background: #073d2d; color: #fff; transform: translateY(-1px); }
+
+.map-summary { border: 1px solid #dce5df; border-radius: .7rem; display: grid; grid-template-columns: repeat(5, 1fr); margin: 0 0 1.25rem; overflow: hidden; }
+.map-summary article { background: #fff; border-left: 1px solid #e4ebe6; display: grid; gap: .3rem; min-height: 5.6rem; padding: .9rem 1rem; }
+.map-summary article:first-child { border-left: 0; }
+.map-summary span { color: #63736b; font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.map-summary b { color: #073d2d; font-size: 1.25rem; letter-spacing: -.04em; }
+.map-summary small { color: #718078; font-size: .66rem; line-height: 1.3; }
+.map-summary .map-update b { font-size: .88rem; letter-spacing: 0; }
+.map-workspace { align-items: stretch; display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr) 17rem; height: 30rem; }
+.map-workspace .territory-map { height: 100%; min-height: 0; min-width: 0; }
+.map-orchard-card { background: #eef0f0; border: 0; border-radius: .8rem; box-sizing: border-box; height: 100%; min-height: 0; overflow-y: auto; padding: 1.9rem; }
+.map-orchard-card h2 { color: #101713; font-size: 1.85rem; letter-spacing: -.06em; line-height: 1.05; margin: .55rem 0 2.25rem; max-width: 9rem; }
+.map-orchard-card > p:not(.eyebrow) { color: #66706b; font-size: .8rem; line-height: 1.55; }
+.map-orchard-card dl { display: grid; gap: 0; margin: 0 0 1.15rem; }
+.map-orchard-card dl div { align-items: center; border-top: 1px solid #dce2df; display: flex; gap: .75rem; justify-content: space-between; padding: 1rem 0; }
+.map-orchard-card dl div:last-child { border-bottom: 1px solid #dce2df; }
+.map-orchard-card dt { color: #66706b; font-size: .78rem; font-weight: 500; }
+.map-orchard-card dd { color: #101713; font-size: .78rem; font-weight: 750; margin: 0; text-align: right; }
+.map-orchard-card .button { font-size: .76rem; width: 100%; }
+.map-legend small { color: #66706b; font-size: .61rem; line-height: 1.35; margin-top: .1rem; max-width: 10rem; }
+.legend-marker { background: #fff; border: 2px solid #073d2d; box-sizing: border-box; }
+
 .agromich-panel {
   background: #f5f7f4;
   border: 0;
@@ -571,6 +599,7 @@
 .ndvi-bars i { background: #94c648; border-radius: .2rem .2rem 0 0; display: block; max-width: 2rem; width: 100%; }
 .ndvi-bars span { color: #66706b; font-size: .62rem; margin-top: .4rem; }
 .analysis-alert { background: #fff5e1; color: #755312; font-size: .8rem; margin: 0; padding: .8rem; }
+.analysis-alert.is-fire { background: #fff0ed; color: #9a3e28; }
 .pasted-response { display: grid; gap: .65rem; }
 .pasted-response label { color: #66706b; display: grid; font-size: .76rem; font-weight: 600; gap: .4rem; }
 .pasted-response textarea { border: 1px solid #dfe4e1; border-radius: .45rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; line-height: 1.45; padding: .7rem; resize: vertical; }
@@ -626,6 +655,15 @@
 .analysis-congruence-alert > span { align-items: center; background: #e7af42; border-radius: 50%; color: #fff; display: inline-flex; flex: 0 0 auto; font-size: .76rem; font-weight: 800; height: 1.25rem; justify-content: center; margin-top: .1rem; width: 1.25rem; }
 .analysis-congruence-alert b { display: block; font-size: .87rem; }
 .analysis-congruence-alert p { font-size: .8rem; line-height: 1.45; margin: .2rem 0 0; }
+.analysis-status { align-items: flex-start; border-radius: .55rem; display: flex; gap: .8rem; padding: 1rem 1.1rem; }
+.analysis-status > span { align-items: center; border-radius: 50%; color: #fff; display: inline-flex; flex: 0 0 auto; font-size: .8rem; font-weight: 800; height: 1.35rem; justify-content: center; margin-top: .05rem; width: 1.35rem; }
+.analysis-status b { display: block; font-size: .9rem; }
+.analysis-status p { font-size: .8rem; line-height: 1.45; margin: .2rem 0 0; }
+.analysis-status.is-normal { background: #e8f5ed; color: #17633c; }.analysis-status.is-normal > span { background: #23824f; }
+.analysis-status.is-alert { background: #fff0f2; color: #9a2943; }.analysis-status.is-alert > span { background: #bd3c61; }
+.analysis-status.is-review { background: #fff4dc; color: #624714; }.analysis-status.is-review > span { background: #e7af42; }
+.analysis-status.is-empty, .analysis-empty { background: #eef2ef; color: #52605a; }.analysis-status.is-empty > span { background: #718078; }
+.analysis-empty { border-radius: .55rem; font-size: .82rem; line-height: 1.5; padding: 1rem 1.1rem; }.analysis-empty b { color: #263b31; display: block; font-size: .88rem; }.analysis-empty p { margin: .25rem 0 0; }
 .ndvi-timeline > div:first-child > p:last-child { color: #66706b; font-size: .8rem; line-height: 1.5; margin: 0 0 1rem; }
 .ndvi-timeline { max-width: 100%; min-width: 0; overflow: hidden; }
 .ndvi-line-chart { height: 11.5rem; min-width: 0; position: relative; width: 100%; }
@@ -1327,6 +1365,7 @@
 
 /* Las capas internas de Leaflet no deben salir por encima del menú móvil. */
 .territory-map { isolation: isolate; z-index: 0; }
+.territory-map .map-legend { z-index: 600; }
 .map-period-selector { align-items: center; background: rgb(255 255 255 / 96%); border: 1px solid rgb(221 229 224 / 92%); border-radius: .55rem; box-shadow: 0 3px 12px rgb(7 61 45 / 16%); display: flex; left: 1rem; overflow: hidden; position: absolute; top: 1rem; z-index: 600; }
 .map-period-selector button { background: transparent; border: 0; color: #466057; font: inherit; font-size: .73rem; font-weight: 800; min-width: 3.65rem; padding: .6rem .65rem; }
 .map-period-selector button.is-selected { background: #073d2d; color: #fff; }
@@ -1348,6 +1387,11 @@
   .menu-open::after { z-index: 990; }
   .map-period-selector { left: .7rem; top: .7rem; }
   .map-period-selector button { font-size: .64rem; min-width: auto; padding: .55rem .48rem; }
+  .map-summary { grid-template-columns: repeat(2, 1fr); }
+  .map-summary article:nth-child(odd) { border-left: 0; }
+  .map-summary .map-update { grid-column: 1 / -1; }
+  .map-workspace { grid-template-columns: 1fr; height: auto; }
+  .map-orchard-card { height: auto; min-height: auto; overflow: visible; }
 }
 
 /* Tablas: cabecera institucional, bordes discretos y estados legibles. */

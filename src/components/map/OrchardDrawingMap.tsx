@@ -17,6 +17,7 @@ export type OrchardMapHandle = {
 
 type OrchardDrawingMapProps = {
   initialPolygon?: PolygonCoordinates | null
+  label?: string
   onPolygonChange: (coordinates: PolygonCoordinates | null, hectares: number | null) => void
 }
 
@@ -47,10 +48,23 @@ function calculateHectares(points: L.LatLng[]) {
   return Math.abs(area / 2) / 10_000
 }
 
-const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(function MapControls({ initialPolygon, onPolygonChange }, ref) {
+function DrawingMapAttribution() {
+  const map = useMap()
+  useEffect(() => { map.attributionControl.setPrefix(false) }, [map])
+  return null
+}
+
+const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(function MapControls({ initialPolygon, label = '', onPolygonChange }, ref) {
   const map = useMap()
   const layerRef = useRef<L.Polygon | null>(null)
   const loadedInitialRef = useRef(false)
+
+  const applyLabel = useCallback((layer: L.Polygon | null) => {
+    if (!layer) return
+    const text = label.trim()
+    if (text) layer.bindTooltip(text, { permanent: true, direction: 'center', className: 'drawing-map-label' })
+    else layer.unbindTooltip()
+  }, [label])
 
   const emitPolygon = useCallback((layer: L.Polygon | null) => {
     if (!layer) {
@@ -82,6 +96,7 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
       if (!(event.layer instanceof L.Polygon)) return
       layerRef.current?.remove()
       layerRef.current = event.layer
+      applyLabel(event.layer)
       listenToPolygonChanges(event.layer, emitPolygon)
       emitPolygon(event.layer)
     }
@@ -101,7 +116,7 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
       map.off('pm:remove', onRemove)
       map.pm.removeControls()
     }
-  }, [emitPolygon, map])
+  }, [applyLabel, emitPolygon, map])
 
   useEffect(() => {
     if (loadedInitialRef.current || !initialPolygon?.[0]?.length) return
@@ -109,11 +124,14 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
     if (points.length < 3) return
     const layer = L.polygon(points, { color: '#23824f', weight: 2, fillOpacity: .16 }).addTo(map)
     layerRef.current = layer
+    applyLabel(layer)
     loadedInitialRef.current = true
     listenToPolygonChanges(layer, emitPolygon)
     map.fitBounds(layer.getBounds(), { padding: [28, 28] })
     emitPolygon(layer)
-  }, [emitPolygon, initialPolygon, map])
+  }, [applyLabel, emitPolygon, initialPolygon, map])
+
+  useEffect(() => { applyLabel(layerRef.current) }, [applyLabel])
 
   useImperativeHandle(ref, () => ({
     locate: () => map.locate({ setView: true, maxZoom: 16 }),
@@ -144,13 +162,14 @@ const MapControls = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(functio
   return null
 })
 
-const OrchardDrawingMap = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(function OrchardDrawingMap({ initialPolygon, onPolygonChange }, ref) {
+const OrchardDrawingMap = forwardRef<OrchardMapHandle, OrchardDrawingMapProps>(function OrchardDrawingMap({ initialPolygon, label, onPolygonChange }, ref) {
   return <MapContainer className="leaflet-orchard-map" center={[19.42, -102.06]} zoom={13} scrollWheelZoom>
     <TileLayer
       attribution="&copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
       url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
     />
-    <MapControls ref={ref} initialPolygon={initialPolygon} onPolygonChange={onPolygonChange} />
+    <DrawingMapAttribution />
+    <MapControls ref={ref} initialPolygon={initialPolygon} label={label} onPolygonChange={onPolygonChange} />
   </MapContainer>
 })
 
